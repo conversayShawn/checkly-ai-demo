@@ -2,14 +2,13 @@
 description: Audit MONITORING.md coverage. Reports which sections are covered, flags gaps, and offers to fill them.
 ---
 
-You are performing a **live coverage audit** on stage. The audience will read along.
-Narrate each step in one short line.
+You are running a coverage audit of the Astroshop monitoring surface against
+`MONITORING.md`. Narrate each step in one short line.
 
-### Step 1 — Read the brief out loud
+### Step 1 — Read the brief
 
 Open `MONITORING.md` and summarize it in 3–5 bullets. Don't dump the whole file; give the
-audience the product shape (what the system is, what journeys matter, what's intentionally
-not covered).
+product shape (what the system is, what journeys matter, what's intentionally not covered).
 
 ### Step 2 — Scan coverage
 
@@ -63,4 +62,4 @@ which gap to fill. Do not pick one on their behalf.
 - Remove the gap from §5 of `MONITORING.md` (that section is a list of intentional gaps —
   once filled, the entry should be struck through or deleted, with a one-word note).
 - Run `npm run test` on the new check only to prove it works, then `npm run deploy`.
-- When deploy finishes, rerun step 3 so the audience sees the row flip from ✗ to ✓.
+- When deploy finishes, rerun Step 3 to confirm the row now reads ✓.

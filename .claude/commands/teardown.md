@@ -2,7 +2,7 @@
 description: Wipe everything. Destroys Checkly resources and clears jsonmap fixtures.
 ---
 
-Destructive reset for re-running the demo from scratch. Confirm with the user **once**
+Destructive reset for starting over from a clean account. Confirm with the user **once**
 before running, then:
 
 1. `npm run destroy` — runs `npx checkly destroy --force` to remove every resource in this
