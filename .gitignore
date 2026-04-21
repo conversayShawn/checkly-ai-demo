@@ -1,0 +1,8 @@
+.env
+node_modules
+.checkly
+test-results
+playwright-report
+*.log
+.DS_Store
+.claude/settings.local.json

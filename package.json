@@ -1,0 +1,24 @@
+{
+  "name": "blueprint-ai-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-first Checkly CLI demo blueprint — pull, run /demo-setup, deploy.",
+  "type": "commonjs",
+  "scripts": {
+    "seed": "tsx fixtures/seed.ts",
+    "teardown": "tsx fixtures/teardown.ts",
+    "test": "npx checkly test",
+    "deploy": "npx checkly deploy --force",
+    "destroy": "npx checkly destroy --force",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.54.1",
+    "@types/node": "^20.11.0",
+    "checkly": "latest",
+    "dotenv": "^16.4.0",
+    "jiti": "^2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,107 @@
+/* Astroshop — public dashboard theme */
+
+:root {
+  --astroshop-bg: #0b1220;
+  --astroshop-surface: #121a2c;
+  --astroshop-accent: #7dd3fc;
+  --astroshop-text: #e3e8f0;
+  --astroshop-muted: #94a3b8;
+}
+
+html,
+body,
+#__next,
+#root,
+main,
+[class*='Layout_'],
+[class*='Page_'],
+[class*='Dashboard_'],
+[class*='dashboard'] {
+  background-color: var(--astroshop-bg) !important;
+  color: var(--astroshop-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Top page banner — keep gradient (semantic <header>) */
+header {
+  background: linear-gradient(90deg, #0b1220 0%, #1e3a5f 100%);
+  border-bottom: 1px solid #334155;
+}
+
+/* Inner header rows (check card titles, time-range selector row) — flat, no gradient */
+.dashboard-header,
+[class*='Header_'],
+[class*='TimeRange_'],
+[class*='Toolbar_'],
+[class*='Controls_'],
+[class*='Filters_'] {
+  background: var(--astroshop-surface) !important;
+  background-image: none !important;
+  border-bottom: 1px solid #1e293b;
+}
+
+h1, h2, h3,
+[class*='title'],
+[class*='Title_'] {
+  color: var(--astroshop-accent);
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--astroshop-accent);
+}
+
+[class*='Card_'],
+[class*='card'],
+[class*='Panel_'],
+[class*='panel'] {
+  background-color: var(--astroshop-surface) !important;
+  border: 1px solid #1e293b;
+}
+
+table,
+[class*='Table_'] {
+  background-color: var(--astroshop-surface);
+  color: var(--astroshop-text);
+}
+
+/* --- Fix for muted stat text that disappears on dark background --- */
+/* Checkly renders availability / p95 values in muted gray, which is  */
+/* unreadable against our dark surface. Force them to --astroshop-text */
+/* while letting colored status pills keep their own backgrounds.      */
+[class*='Metric_'],
+[class*='metric'],
+[class*='Stat_'],
+[class*='stat'],
+[class*='Value_'],
+[class*='value'],
+[class*='Availability'],
+[class*='availability'],
+[class*='Percent'],
+[class*='percent'],
+[class*='Number'],
+[class*='number'],
+span, p, div, td, th, li {
+  color: var(--astroshop-text);
+}
+
+/* Column headers (AVAILABILITY / P95 labels) — let them stay muted but visible */
+thead,
+[class*='Label_'],
+[class*='Columns_'],
+[class*='columnHeader'] {
+  color: var(--astroshop-muted) !important;
+}
+
+/* Keep colored status indicators intact — don't let the blanket rule above
+ * bleed into badges/pills/chips that carry their own background colors. */
+[class*='Badge_'] *,
+[class*='badge'] *,
+[class*='Pill_'] *,
+[class*='pill'] *,
+[class*='Chip_'] *,
+[class*='chip'] *,
+[class*='Status_'] *,
+[class*='status'] * {
+  color: inherit;
+}
