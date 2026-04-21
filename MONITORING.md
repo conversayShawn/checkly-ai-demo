@@ -1,6 +1,6 @@
 # Astroshop — Monitoring & SLOs
 
-**Status:** Active · **Owner:** SRE (co-edited by service teams) · **Last reviewed:** 2026-04-03 · **Review cadence:** Quarterly
+**Status:** Active · **Owner:** SRE (co-edited by service teams) · **Last reviewed:** 2026-04-03 · **Review cadence:** Monthly
 
 Single source of truth for what we monitor in production and why. Every check in
 `monitoring/` references a section here via a `// Covers: MONITORING.md §X.Y`

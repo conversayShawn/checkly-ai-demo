@@ -30,14 +30,14 @@ live. Start there — then watch Claude generate the code.
 
 ```
 claude
-> /bootstrap
+> /monitoring-deploy
 ```
 
-`/bootstrap` runs, in order:
+`/monitoring-deploy` runs, in order:
 
-1. **Reads `MONITORING.md`** so the product intent is on screen before any code moves.
-2. `npx skills add checkly/checkly-cli -y` — installs Checkly's official Agent Skills.
-3. `npm install`
+1. `npm install` — always runs first so the toolchain is present.
+2. **Reads `MONITORING.md`** so the product intent is on screen before any code moves.
+3. `npx skills add checkly/checkly-cli -y` — installs Checkly's official Agent Skills.
 4. `npm run seed` — creates fixture items on `jsonmap.site`.
 5. `npm run test` — dry-runs every check on Checkly infrastructure.
 6. `npm run deploy` — deploys everything.

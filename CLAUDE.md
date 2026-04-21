@@ -70,7 +70,7 @@ fixtures/
 └─ teardown.ts             # DELETEs every fixture
 
 .claude/commands/
-├─ bootstrap.md            # one-shot setup flow
+├─ monitoring-deploy.md    # one-shot setup flow
 ├─ teardown.md             # destructive reset
 ├─ add-check.md            # add a new check
 ├─ add-flow.md             # add a Playwright spec
@@ -89,14 +89,14 @@ fixtures/
   and `public` when customer-facing. See `MONITORING.md §6` for the full scheme.
 - **Runtime** — pinned to `2025.04`. Playwright version matches (1.54.1).
 - **No real notifications** — see Alerting contract above.
-- **Skills** — `/bootstrap` starts by running `npx skills add checkly/checkly-cli` so the
+- **Skills** — `/monitoring-deploy` runs `npx skills add checkly/checkly-cli` so the
   official Checkly Agent Skills are loaded into Claude Code.
 
 ## Common tasks
 
 | Want to… | Command |
 |---|---|
-| Run the full setup flow | `/bootstrap` |
+| Run the full setup flow | `/monitoring-deploy` |
 | Audit coverage against MONITORING.md | `/monitor` |
 | Add a new check | `/add-check <description>` |
 | Add a browser flow | `/add-flow <user journey>` |

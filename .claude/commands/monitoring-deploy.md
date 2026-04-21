@@ -1,5 +1,5 @@
 ---
-description: One-shot setup. Installs Checkly's Agent Skills, seeds API fixtures, tests, deploys.
+description: One-shot setup. Installs deps, registers Checkly's Agent Skills, seeds API fixtures, tests, deploys.
 ---
 
 You are bootstrapping the Astroshop monitoring-as-code project against the configured
@@ -8,13 +8,14 @@ fails.
 
 Run in this order, stopping only on hard failure:
 
-1. **Read `MONITORING.md` first.** It's the source of truth for what Astroshop monitors and
-   why. Summarize in 3–5 bullets: what the product is, the user journeys that matter, the
+1. `npm install` — always run first so the toolchain is present. Idempotent; skip the
+   output if everything is already installed.
+2. **Read `MONITORING.md`.** It's the source of truth for what Astroshop monitors and why.
+   Summarize in 3–5 bullets: what the product is, the user journeys that matter, the
    backend surfaces, and note the intentional gaps in §5 that `/monitor` can surface later.
-2. `npx skills add checkly/checkly-cli -y` — installs Checkly's official Agent Skills so
+3. `npx skills add checkly/checkly-cli -y` — installs Checkly's official Agent Skills so
    Claude Code picks up project conventions. **Run with `-y` (non-interactive)** — the
    first install prompts otherwise and stalls the flow.
-3. `npm install`
 4. `npm run seed` — seeds the jsonmap.site backend with the fixtures in `fixtures/items.ts`.
 5. `npm run test` — dry-runs every check against Checkly's infrastructure. Show the summary
    only.
