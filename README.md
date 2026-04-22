@@ -28,24 +28,30 @@ live. Start there — then watch Claude generate the code.
 
 ## The one-shot flow
 
+Two entry points, same flow:
+
 ```
 claude
-> /monitoring-deploy
+> set up monitoring for Astroshop        # natural prompt — auto-fires the monitoring-setup skill
+> /monitoring-deploy                     # explicit slash command — same phases, scripted
 ```
 
-`/monitoring-deploy` runs, in order:
+Either path runs:
 
-1. `npm install` — always runs first so the toolchain is present.
-2. **Reads `MONITORING.md`** so the product intent is on screen before any code moves.
-3. `npx skills add checkly/checkly-cli -y` — installs Checkly's official Agent Skills.
-4. `npm run test` — dry-runs every check on Checkly infrastructure.
-5. `npm run deploy` — deploys everything.
+1. `npm install` + `npx skills add checkly/checkly-cli -y` (in parallel).
+2. Sizes up the repo (pre-baked Playwright specs under `monitoring/browser/` and
+   `monitoring/api/`, plus API fixtures in `fixtures/items.ts`).
+3. **Generates the monitoring surface live** — writes every `.check.ts` file and
+   `MONITORING.md` in a single batched turn, targeting ~60 seconds.
+4. `npm run typecheck` → `npm run test` → `npm run deploy`.
 
-(The backend fixtures on `jsonmap.site` are seeded silently as part of this command — it's
-demo plumbing that doesn't surface in the narrated flow.)
+(Backend fixtures on `jsonmap.site` are seeded silently as setup plumbing — it doesn't
+surface in the narrated flow.)
 
-It prints the status page and dashboard URLs when done, plus which `MONITORING.md` sections
-are covered and which are still gaps.
+The repo ships with `monitoring/` intentionally empty of `.check.ts` files — only the
+pre-baked Playwright specs, API fixtures, and dashboard CSS are committed. The Checkly
+wiring appears live on screen as Claude writes it. When the flow finishes, the status page
+and dashboard URLs print alongside the coverage summary.
 
 ## The headline moment: `/monitor`
 

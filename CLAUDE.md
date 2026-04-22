@@ -70,12 +70,25 @@ fixtures/
 └─ teardown.ts             # DELETEs every fixture
 
 .claude/commands/
-├─ monitoring-deploy.md    # one-shot setup flow
+├─ monitoring-deploy.md    # one-shot setup flow (explicit slash command)
 ├─ teardown.md             # destructive reset
+├─ rca.md                  # root-cause a failing/degraded check
 ├─ add-check.md            # add a new check
 ├─ add-flow.md             # add a Playwright spec
 ├─ wire-alert.md           # route tags → channels
 └─ publish-service.md      # expose a service on the status page
+
+.claude/skills/
+├─ monitoring-setup/
+│  └─ SKILL.md              # auto-triggers on natural prompts like
+│                           # "set up monitoring for <site>" — generates
+│                           # the .check.ts wiring live from the repo's
+│                           # pre-baked specs/fixtures. /monitoring-deploy
+│                           # is the pre-baked spec-driven safety net.
+└─ root-cause/
+   └─ SKILL.md              # auto-triggers on "dig into the <surface>
+                            # failure" — wraps `checkly rca` with
+                            # deterministic framing from MONITORING.md
 ```
 
 ## Conventions
@@ -96,7 +109,10 @@ fixtures/
 
 | Want to… | Command |
 |---|---|
-| Run the full setup flow | `/monitoring-deploy` |
+| Run the full setup flow (explicit, scripted safety net) | `/monitoring-deploy` — delegates to the `monitoring-setup` skill |
+| Generate monitoring live from a natural prompt | *"set up monitoring for my shop at example.com"* / *"build monitoring for Astroshop"* — auto-fires the `monitoring-setup` skill, which writes the `.check.ts` wiring live against the repo's pre-baked specs and fixtures |
+| Root-cause a failing check (explicit) | `/rca <surface>` (e.g. `/rca checkout`) |
+| Root-cause a failing check (natural prompt) | *"dig into the checkout failure"* — auto-fires the `root-cause` skill |
 | Audit coverage against MONITORING.md | `/monitor` |
 | Add a new check | `/add-check <description>` |
 | Add a browser flow | `/add-flow <user journey>` |

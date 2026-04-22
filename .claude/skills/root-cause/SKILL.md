@@ -1,0 +1,82 @@
+---
+name: root-cause
+description: Use this skill when the user asks you to investigate, diagnose, dig into, explain, find the cause of, or triage a failing or degraded monitoring check. Activates on prompts like "dig into the checkout failure", "what's breaking Astroshop", "why is payment failing", "root cause this", "diagnose the degraded catalog check", "what went wrong with the homepage". Do NOT activate for generic troubleshooting questions that aren't about a deployed Checkly check.
+---
+
+The user is pointing at a failing or degraded check on the Astroshop monitoring surface
+and wants a root-cause narrative suitable for on-call. Your job is to identify the right
+check, trigger Checkly's native RCA, and frame the output with deterministic context from
+`MONITORING.md` so the investigation reads like a real on-call triage.
+
+Speak as if you're an on-call SRE working the incident — not as if you're running a demo.
+
+## Narration structure
+
+This is the load-bearing part of this skill. The Checkly RCA output itself is an LLM
+summary and will vary slightly in wording run-to-run; the frame around it must be
+deterministic so the investigation always reads the same shape.
+
+Print the investigation as five fixed sections, in this order:
+
+### 1. `▸ Scanning for impacted checks`
+Run `npx checkly checks list --status failing --output json` and
+`npx checkly checks list --status degraded --output json`. Identify the check the user
+is pointing at:
+- If they named a service (e.g. "checkout", "payment", "catalog"), filter by name or the
+  `svc:<name>` tag.
+- Otherwise, take the most recently-regressing failing check; fall back to degraded.
+Print one line naming the check, its tier tag, and its owning-team tag.
+`✓ <check name> — tier:<N>, owner:<team>, started failing <N>m ago`
+
+### 2. `▸ Pulling the most recent error group`
+Run `npx checkly checks get <id> --output json` and extract the first entry from
+`errorGroups`. Print one line summarising the error (first 120 chars of the message) and
+its error-group ID.
+
+### 3. `▸ Triggering Checkly root-cause analysis`
+Run `npx checkly rca run -e <error-group-id> -w -o md`. The `-w` flag blocks until the
+analysis completes; `-o md` returns markdown. Print the raw RCA block under a clear
+heading so the audience can see it's Checkly's output, not yours:
+
+```
+━━━ Checkly RCA ━━━
+<raw markdown from checkly rca run>
+━━━━━━━━━━━━━━━━━━
+```
+
+### 4. **Cross-reference with `MONITORING.md`**
+Look up the `Covers: MONITORING.md §X.Y` header on the affected check's source file and
+open that section in `MONITORING.md`. Print:
+- **Surface:** the §X.Y title and one-line description.
+- **Committed SLO:** the row from §4 for this surface.
+- **Alerting tier:** from the check's `tier:` tag, interpreted per §6 (pages / notifies /
+  logs-only).
+- **Owner:** the team from the §Service ownership table.
+
+### 5. **Recommended next action**
+One or two lines naming what the on-call engineer should do, derived from the owner and
+tier:
+- tier:1 → "Page `#oncall-<team>` and open an incident on the status page's <service>
+  card."
+- tier:2 → "Notify `#oncall-<team>` via Slack; ticket within the hour."
+- tier:3 → "Log for the daily review; no paging required."
+If a matching runbook exists in `RUNBOOKS/` (e.g. `checkout-degraded.md`,
+`catalog-5xx.md`), name it. Otherwise say "No runbook for this surface — worth adding
+after resolution."
+
+## Guardrails
+
+- Never invent an error group ID — always pull it from `checkly checks get <id>`.
+- If no check is failing or degraded, say so plainly and stop. Do not make up a
+  finding.
+- Do not rerun RCA on the same error group in the same session — reuse the existing
+  result via `checkly rca get <rca-id>` if available.
+- Do not escalate (flip alert channel to real, create a real incident, page anyone)
+  without explicit confirmation.
+
+## Trigger phrasing tips for operators
+
+The skill fires most reliably on prompts that include both an action verb (*dig into*,
+*diagnose*, *root-cause*, *what's breaking*) and a surface name that maps to a tag
+(*checkout*, *payment*, *catalog*, *search*, *homepage*). A reliable on-stage formula:
+**"Dig into the <surface> failure"** or **"Root-cause the <surface> check."**
