@@ -5,8 +5,8 @@ description: Use this skill when the user asks you to investigate, diagnose, dig
 
 The user is pointing at a failing or degraded check on the Astroshop monitoring surface
 and wants a root-cause narrative suitable for on-call. Your job is to identify the right
-check, trigger Checkly's native RCA, and frame the output with deterministic context from
-`MONITORING.md` so the investigation reads like a real on-call triage.
+check, trigger Checkly's native RCA, and recommend the next action from the check's own
+tags (tier + owning team) — no external spec document is consulted.
 
 Speak as if you're an on-call SRE working the incident — not as if you're running a demo.
 
@@ -16,7 +16,7 @@ This is the load-bearing part of this skill. The Checkly RCA output itself is an
 summary and will vary slightly in wording run-to-run; the frame around it must be
 deterministic so the investigation always reads the same shape.
 
-Print the investigation as five fixed sections, in this order:
+Print the investigation as four fixed sections, in this order:
 
 ### 1. `▸ Scanning for impacted checks`
 Run `npx checkly checks list --status failing --output json` and
@@ -44,18 +44,10 @@ heading so the audience can see it's Checkly's output, not yours:
 ━━━━━━━━━━━━━━━━━━
 ```
 
-### 4. **Cross-reference with `MONITORING.md`**
-Look up the `Covers: MONITORING.md §X.Y` header on the affected check's source file and
-open that section in `MONITORING.md`. Print:
-- **Surface:** the §X.Y title and one-line description.
-- **Committed SLO:** the row from §4 for this surface.
-- **Alerting tier:** from the check's `tier:` tag, interpreted per §6 (pages / notifies /
-  logs-only).
-- **Owner:** the team from the §Service ownership table.
-
-### 5. **Recommended next action**
-One or two lines naming what the on-call engineer should do, derived from the owner and
-tier:
+### 4. **Recommended next action**
+One or two lines naming what the on-call engineer should do, derived from the check's own
+tags (tier + owning team, both present on the check file and returned by
+`checkly checks get`):
 - tier:1 → "Page `#oncall-<team>` and open an incident on the status page's <service>
   card."
 - tier:2 → "Notify `#oncall-<team>` via Slack; ticket within the hour."

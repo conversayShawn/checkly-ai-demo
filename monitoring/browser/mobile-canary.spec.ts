@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.10 — Mobile viewport canary.
+// Mobile viewport canary.
 // Runs the same hero-visible assertion at a mobile viewport to catch CSS
 // breakpoint regressions that desktop checks miss (hidden nav, hero wrap, etc).
 test.use({ viewport: { width: 390, height: 844 } })

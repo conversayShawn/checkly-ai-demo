@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.5 — Customer can add a product to the cart
+// Customer can add a product to the cart
 // This test is part of a Playwright Check Suite, configured in playwright.config.ts
 
 test.describe('Product browsing and cart', () => {

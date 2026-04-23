@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.4 — Customer can follow a "You May Also Like" recommendation
+// Customer can follow a "You May Also Like" recommendation
 // This test is part of a Playwright Check Suite, configured in playwright.config.ts
 
 test.describe('Product recommendations', () => {

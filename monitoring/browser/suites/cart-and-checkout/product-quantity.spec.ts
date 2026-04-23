@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.6 — Customer can select quantity > 1 and add to cart
+// Customer can select quantity > 1 and add to cart
 // This test is part of a Playwright Check Suite, configured in playwright.config.ts
 
 test.describe('Product quantity selection', () => {

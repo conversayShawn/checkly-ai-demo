@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.1 + §1.2 — homepage → hot products → product detail page
+// homepage → hot products → product detail page
 test('Browse hot products and open a product page', async ({ page }) => {
   await page.goto('/')
 

@@ -8,7 +8,7 @@ export const fixtures: Fixture[] = [
     body: { status: 'ok', service: 'blueprint-ai-demo', version: '0.1.0' },
   },
 
-  // Catalog — §2.1
+  // Catalog
   {
     key: 'product-telescope-starter',
     body: { sku: 'TELE-001', name: 'Starter Telescope', priceUsd: 129.0, inStock: true },
@@ -22,7 +22,7 @@ export const fixtures: Fixture[] = [
     body: { sku: 'TRIP-003', name: 'Carbon Tripod', priceUsd: 199.0, inStock: false },
   },
 
-  // Orders — §2.2
+  // Orders
   {
     key: 'order-demo-1',
     body: {
@@ -36,7 +36,7 @@ export const fixtures: Fixture[] = [
     },
   },
 
-  // Inventory — §2.4
+  // Inventory
   {
     key: 'inventory-TELE-001',
     body: { sku: 'TELE-001', available: 42, warehouse: 'US-WEST', reservedForOrders: 3 },
@@ -50,7 +50,7 @@ export const fixtures: Fixture[] = [
     body: { sku: 'TRIP-003', available: 0, warehouse: 'US-EAST', reservedForOrders: 0 },
   },
 
-  // Pricing — §2.5
+  // Pricing
   {
     key: 'pricing-TELE-001',
     body: { sku: 'TELE-001', base: 129.0, currency: 'USD', discount: null },
@@ -64,7 +64,7 @@ export const fixtures: Fixture[] = [
     body: { sku: 'TRIP-003', base: 199.0, currency: 'USD', discount: null },
   },
 
-  // Recommendations — §2.6
+  // Recommendations
   {
     key: 'recommendations-TELE-001',
     body: { sku: 'TELE-001', recommendedSkus: ['BINO-002', 'TRIP-003'] },
@@ -74,13 +74,13 @@ export const fixtures: Fixture[] = [
     body: { sku: 'BINO-002', recommendedSkus: ['TELE-001'] },
   },
 
-  // Payment gateway health — §2.7
+  // Payment gateway health
   {
     key: 'payment-health',
     body: { status: 'ok', provider: 'stripe', latencyMs: 120 },
   },
 
-  // Shipping estimates — §2.8
+  // Shipping estimates
   {
     key: 'shipping-10001',
     body: { postcode: '10001', cost: 12.5, currency: 'USD', etaDays: 3 },

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §2.1 + §2.2 — body of the order-flow multistep check.
+// body of the order-flow multistep check.
 // MultiStepCheck body: chain two API calls (list → detail) against the mock API.
 // This file is referenced by order-flow.check.ts and is NOT picked up by
 // browserChecks.testMatch (which only scans monitoring/browser/*.spec.ts).

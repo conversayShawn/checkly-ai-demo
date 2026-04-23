@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §3.3 — SSL certificate expiry on prod-otel-demo.
+// SSL certificate expiry on prod-otel-demo.
 // Minimal navigation; the real work is done by `sslCheckDomain` on the
 // BrowserCheck construct, which alerts on upcoming cert expiry.
 test('Homepage responds 200 (SSL cert canary)', async ({ page }) => {

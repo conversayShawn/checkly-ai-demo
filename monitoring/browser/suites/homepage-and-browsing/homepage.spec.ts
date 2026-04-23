@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.1 — Customer can load the homepage and see featured products
+// Customer can load the homepage and see featured products
 // This test is part of a Playwright Check Suite, configured in playwright.config.ts
 
 test.describe('Homepage', () => {

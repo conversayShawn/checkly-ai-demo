@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.8 — Customer can complete checkout and see order confirmation
+// Customer can complete checkout and see order confirmation
 // This test is part of a Playwright Check Suite, configured in playwright.config.ts
 
 test.describe('Checkout flow', () => {

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.7 — Customer can empty their cart
+// Customer can empty their cart
 // This test is part of a Playwright Check Suite, configured in playwright.config.ts
 
 test.describe('Cart management', () => {

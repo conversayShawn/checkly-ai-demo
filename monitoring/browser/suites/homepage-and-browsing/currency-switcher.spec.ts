@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §1.3 — Customer can switch currency and see prices update
+// Customer can switch currency and see prices update
 // This test is part of a Playwright Check Suite, configured in playwright.config.ts
 
 test.describe('Currency switcher', () => {

@@ -7,6 +7,5 @@ names the surface to investigate — e.g. `/rca checkout`, `/rca payment`, `/rca
 If $ARGUMENTS is empty, investigate the most recently failing check.
 
 Follow the narration structure defined in `.claude/skills/root-cause/SKILL.md` exactly —
-the five fixed sections (Scanning, Error group, Checkly RCA, Cross-reference with
-MONITORING.md, Recommended next action). Do not improvise the frame; only the Checkly RCA
-block's content is allowed to vary.
+the four fixed sections (Scanning, Error group, Checkly RCA, Recommended next action). Do
+not improvise the frame; only the Checkly RCA block's content is allowed to vary.

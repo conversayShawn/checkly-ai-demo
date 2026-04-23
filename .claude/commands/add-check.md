@@ -14,7 +14,7 @@ Decide the right construct:
 - TCP port → `TcpMonitor` in `monitoring/uptime/`, assign to `sreGroup`
 - Cron/job ping → `HeartbeatMonitor` in `monitoring/uptime/`, assign to `sreGroup`
 
-Groups model team ownership (Storefront / Platform API / SRE), not check type — see `MONITORING.md §Service ownership`.
+Groups model team ownership (Storefront / Platform API / SRE), not check type.
 
 Conventions:
 

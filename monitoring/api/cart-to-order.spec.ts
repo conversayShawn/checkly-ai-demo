@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Covers: MONITORING.md §2.1 + §2.4 + §2.5 + §2.6 + §2.2 — full add-to-cart chain.
+// full add-to-cart chain.
 // MultiStepCheck body: product → inventory → pricing → recommendations → order,
 // threading the per-SKU services the storefront calls when a customer buys.
 

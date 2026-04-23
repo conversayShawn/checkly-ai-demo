@@ -27,20 +27,13 @@ against a sample e-commerce target ("Astroshop") that a presenter can pitch agai
    ```
 3. Make sure Claude Code is installed and you're signed in.
 
-## Read this first: `MONITORING.md`
-
-`MONITORING.md` is the plain-English source of truth for what Astroshop monitors and why —
-no Checkly jargon. Every check traces back to a section in that file via a one-line
-`// Covers: MONITORING.md §X.Y` header comment, and `/monitor` audits coverage against it
-live. Start there — then watch Claude generate the code.
-
 ## The one-shot flow
 
 Two entry points, same flow:
 
 ```
 claude
-> set up monitoring for Astroshop        # natural prompt — auto-fires the monitoring-setup skill
+> set up monitoring for Astroshop        # natural prompt — auto-fires the synthetic-monitoring skill
 > /monitoring-deploy                     # explicit slash command — same phases, scripted
 ```
 
@@ -49,8 +42,9 @@ Either path runs:
 1. `npm install` + `npx skills add checkly/checkly-cli -y` (in parallel).
 2. Sizes up the repo (pre-baked Playwright specs under `monitoring/browser/` and
    `monitoring/api/`, plus API fixtures in `fixtures/items.ts`).
-3. **Generates the monitoring surface live** — writes every `.check.ts` file and
-   `MONITORING.md` in a single batched turn, targeting ~60 seconds.
+3. **Generates the monitoring surface live** — writes every `.check.ts` file in a single
+   batched turn (targeting ~60 seconds), then a short `MONITORING.md` summarizing what
+   went in and why.
 4. `npm run typecheck` → `npm run test` → `npm run deploy`.
 
 (Backend fixtures on `jsonmap.site` are seeded silently as setup plumbing — it doesn't
@@ -58,22 +52,9 @@ surface in the narrated flow.)
 
 The repo ships with `monitoring/` intentionally empty of `.check.ts` files — only the
 pre-baked Playwright specs, API fixtures, and dashboard CSS are committed. The Checkly
-wiring appears live on screen as Claude writes it. When the flow finishes, the status page
-and dashboard URLs print alongside the coverage summary.
-
-## The headline moment: `/monitor`
-
-```
-> /monitor
-```
-
-`/monitor` reads `MONITORING.md`, greps every check/spec for `Covers: §X.Y` markers, and
-prints a section-by-section coverage matrix. The intentional gaps in §5 of the brief
-(discount code at checkout, search API) show up as `✗`. Pick one; Claude writes the missing
-check, deploys it, and the ✗ flips to ✓.
-
-This is the moment that makes AI-first monitoring-as-code tangible to someone who hasn't
-seen Checkly before.
+wiring appears live on screen as Claude writes it, and `MONITORING.md` is the last artifact
+written: a post-hoc summary, not a pre-authored spec. When the flow finishes, the status
+page and dashboard URLs print alongside the list of intentional gaps to address next.
 
 ## Extend it interactively
 
@@ -81,7 +62,6 @@ Show Claude generating new monitoring in-context:
 
 | Prompt | What happens |
 |---|---|
-| `/monitor` | Audits `MONITORING.md` coverage, flags gaps, offers to fill them |
 | `/add-check GET /orders/:id` | Writes an `ApiCheck` into `monitoring/api/`, wires it to `platformApiGroup` |
 | `/add-flow apply coupon at checkout` | Writes a new Playwright spec into `monitoring/browser/` |
 | `/publish-service Orders` | Adds a `StatusPageService` and card on the status page |
