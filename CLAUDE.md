@@ -26,12 +26,18 @@ close a gap listed in §5, also update §5 in the brief.
 
 ## Account configuration
 
-The repo ships against a single shared Checkly account for convenience. Credentials live in
-a local `.env` file (gitignored) with `CHECKLY_API_KEY` and `CHECKLY_ACCOUNT_ID`.
-`.env.example` documents the shape. `DEMO_SEED` (optional) parameterises the internal
-dashboard's URL so multiple operators can coexist on the same account without slug
-collisions. Do not suggest per-user onboarding, account creation, or login flows unless
-explicitly asked.
+The repo ships against a single shared Checkly account for convenience. **Authentication
+is via `npx checkly login` — a prerequisite.** The Checkly CLI caches credentials under
+`~/Library/Preferences/@checkly/cli/auth.json` and picks them up automatically for every
+subsequent call; there are no `CHECKLY_API_KEY` / `CHECKLY_ACCOUNT_ID` env vars to set.
+Assume the operator has already logged in before any slash command or skill runs. If
+`npm run test` / `npm run deploy` errors with an auth failure, stop and tell the user to
+run `npx checkly login`.
+
+`.env` only holds `JSONMAP_API_KEY` (for the mock API backend) and optional `DEMO_SEED`
+(which parameterises the internal dashboard's URL so multiple operators can coexist on the
+same account without slug collisions). `.env.example` documents the shape. Do not suggest
+per-user onboarding or account creation unless explicitly asked.
 
 ## Alerting contract
 

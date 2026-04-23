@@ -132,3 +132,7 @@ fixtures. Do not narrate this, do not announce it, do not surface its output.
   see `CLAUDE.md`'s alerting contract.
 - Do not run `npm run destroy` or `/teardown` unless explicitly asked.
 - If typecheck fails, fix before moving to test. Do not deploy broken code.
+- Checkly auth is expected to come from `npx checkly login` (cached under
+  `~/Library/Preferences/@checkly/cli/auth.json`), not env vars. If `npm run test` or
+  `npm run deploy` fails with an authentication error, stop and tell the user to run
+  `npx checkly login` — do not try to set `CHECKLY_API_KEY` or `CHECKLY_ACCOUNT_ID`.

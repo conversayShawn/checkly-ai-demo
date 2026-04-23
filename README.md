@@ -11,13 +11,21 @@ against a sample e-commerce target ("Astroshop") that a presenter can pitch agai
 
 ## Before you run it
 
-1. Grab the shared account credentials from the team vault and drop them into `.env`:
+1. **Log in to Checkly** from the CLI — this is a prerequisite for `npm run test` and
+   `npm run deploy`:
+   ```
+   npx checkly login
+   ```
+   Pick the shared demo account from the team vault when prompted. Credentials get
+   cached under `~/Library/Preferences/@checkly/cli/auth.json`, so every subsequent
+   command runs non-interactively.
+2. Drop the jsonmap key (and optionally a `DEMO_SEED`) into `.env`:
    ```
    cp .env.example .env
-   # fill in CHECKLY_API_KEY, CHECKLY_ACCOUNT_ID, JSONMAP_API_KEY
+   # fill in JSONMAP_API_KEY
    # optionally set DEMO_SEED so your internal dashboard URL is unique
    ```
-2. Make sure Claude Code is installed and you're signed in.
+3. Make sure Claude Code is installed and you're signed in.
 
 ## Read this first: `MONITORING.md`
 
