@@ -54,8 +54,15 @@ concrete number`.
 
 1. **`▸ Reading the API spec`** — Read `openapi.yaml`. Batch with the preflight Bashes in
    the first assistant message. ✓: "N endpoints + M flows".
-2. **`▸ Writing the monitoring surface`** — emit every Write in **one assistant turn**
-   (parallel). `MONITORING.md` is the last Write in the batch.
+2. **`▸ Writing the monitoring surface`** — **get the first Write out as fast as possible,
+   then keep writing without pausing to plan.** In the **first assistant message** (same
+   message as the preflight bashes and the `openapi.yaml` Read), also emit Writes for the
+   deterministic orchestration files that don't depend on the spec —
+   `monitoring/channels.check.ts`, `monitoring/groups.check.ts`, `monitoring/services.check.ts`.
+   From there, continuously emit the next file you already know how to write: status page →
+   dashboards → maintenance → suites → uptime → browser → API checks → MultiStep checks →
+   `MONITORING.md` last. Don't pre-plan files you haven't started yet; don't deliberate on
+   batch sizing; just write the next obvious file.
 3. **`▸ Dry-running checks on Checkly`** — `npm run test` (compiles end-to-end; no separate
    typecheck needed). If compile errors, fix and retry.
 4. **`▸ Deploying`** — `npm run deploy`.
@@ -66,7 +73,10 @@ concrete number`.
 
 ## Guardrails
 
-- **Single-turn batched Writes are load-bearing.** One Write per turn → 5+ minute hangs.
+- **Keep writing continuously.** The expensive thing isn't the number of Writes per turn —
+  it's thinking blocks *between* Writes. Don't pre-plan the full surface; don't deliberate
+  on which file "should" come next. Write the next file you already have in your head, then
+  the next. First Write belongs in the first assistant message.
 - **Read exactly one file: `openapi.yaml`.** No specs, no configs, no `fixtures/items.ts`.
   If uncertain about a detail, emit reasonable code and let phase 3 catch mismatches.
 - Do not touch pre-baked files. Do not replace mocked alert channel URLs. Do not run
