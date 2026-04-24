@@ -12,9 +12,10 @@ structure defined in `.claude/skills/synthetic-monitoring/SKILL.md` exactly.
 
 **Then the numbered phases:**
 
-1. Size up the repo (list pre-baked specs under `monitoring/browser/` and `monitoring/api/`,
-   read `fixtures/items.ts`, reread `CLAUDE.md` for conventions) — runs while the background
-   toolchain load continues.
+1. Read `openapi.yaml` (the single input that describes the API surface, with
+   `x-monitoring` hints driving tier and svc tags). Browser specs, suite dirs, and
+   MultiStep flow paths are already listed in the skill; no need to `ls` — runs while the
+   background toolchain load continues.
 2. Write the monitoring surface — emit **all** `.check.ts` Write calls in a single
    assistant turn for parallel execution. `MONITORING.md` is the last Write in the batch,
    a short post-hoc summary of what went in and why; it does not drive construct choice.

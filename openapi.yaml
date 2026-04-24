@@ -1,0 +1,148 @@
+openapi: 3.1.0
+info:
+  title: Astroshop Backend API
+  version: 1.0.0
+  summary: >
+    Catalog, inventory, pricing, orders, and payment surfaces that the Astroshop
+    storefront calls. Served from a shared mock backend (jsonmap.site) during
+    monitoring setup. `x-monitoring` annotations below carry the criticality and
+    status-page-service mapping the synthetic-monitoring generator consumes.
+
+servers:
+  - url: https://jsonmap.site/api/v1
+    description: Shared mock backend
+
+security:
+  - bearerAuth: []
+
+tags:
+  - { name: health,          description: Backend health probes }
+  - { name: catalog,         description: Product catalog surfaces }
+  - { name: orders,          description: Order lookup + mutation }
+  - { name: inventory,       description: Per-SKU stock levels }
+  - { name: pricing,         description: Per-SKU pricing and discounts }
+  - { name: recommendations, description: Related-product suggestions }
+  - { name: payments,        description: Payment gateway health }
+  - { name: shipping,        description: Shipping cost + ETA by postcode }
+
+paths:
+  /items:
+    get:
+      summary: Catalog list — every item in the backend
+      operationId: listItems
+      tags: [catalog]
+      x-monitoring:
+        service: api
+        criticality: routine
+        assertions: [array-length-gte-15]   # catalog-depth canary
+      responses:
+        '200': { description: ok }
+
+  /items/system-health:
+    get:
+      summary: Backend health probe
+      operationId: getSystemHealth
+      tags: [health]
+      x-monitoring: { service: api, criticality: routine }
+      responses:
+        '200': { description: ok }
+
+  /items/product-{slug}:
+    get:
+      summary: Product detail by slug
+      operationId: getProductDetail
+      tags: [catalog]
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string, example: telescope-starter } }
+      x-monitoring: { service: api, criticality: critical }
+      responses:
+        '200': { description: ok }
+
+  /items/order-{id}:
+    get:
+      summary: Order lookup
+      operationId: getOrder
+      tags: [orders]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, example: demo-1 } }
+      x-monitoring: { service: api, criticality: critical }
+      responses:
+        '200': { description: ok }
+
+  /items/inventory-{sku}:
+    get:
+      summary: Per-SKU inventory
+      operationId: getInventory
+      tags: [inventory]
+      parameters:
+        - { in: path, name: sku, required: true, schema: { type: string, example: TELE-001 } }
+      x-monitoring:
+        service: api
+        criticality: critical
+        note: blocks add-to-cart if stale
+      responses:
+        '200': { description: ok }
+
+  /items/pricing-{sku}:
+    get:
+      summary: Per-SKU pricing
+      operationId: getPricing
+      tags: [pricing]
+      parameters:
+        - { in: path, name: sku, required: true, schema: { type: string, example: TELE-001 } }
+      x-monitoring: { service: api, criticality: critical }
+      responses:
+        '200': { description: ok }
+
+  /items/recommendations-{sku}:
+    get:
+      summary: Related-product recommendations
+      operationId: getRecommendations
+      tags: [recommendations]
+      parameters:
+        - { in: path, name: sku, required: true, schema: { type: string, example: TELE-001 } }
+      x-monitoring:
+        service: api
+        criticality: low
+        note: non-blocking enhancement; degraded experience only
+      responses:
+        '200': { description: ok }
+
+  /items/payment-health:
+    get:
+      summary: Payment gateway health
+      operationId: getPaymentHealth
+      tags: [payments]
+      x-monitoring: { service: checkout, criticality: critical }
+      responses:
+        '200': { description: ok }
+
+  /items/shipping-{postcode}:
+    get:
+      summary: Shipping cost + ETA by postcode
+      operationId: getShipping
+      tags: [shipping]
+      parameters:
+        - { in: path, name: postcode, required: true, schema: { type: string, example: '10001' } }
+      x-monitoring: { service: checkout, criticality: critical }
+      responses:
+        '200': { description: ok }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: JSONMAP_API_KEY from the operator's .env.
+
+# Multi-step flows are pre-baked as Playwright API specs under monitoring/api/.
+# Wrap each in a MultiStepCheck construct, pointing at the spec file by path.
+x-monitoring-flows:
+  - spec: monitoring/api/order-flow.spec.ts
+    summary: List products, then fetch one
+    service: api
+    criticality: critical
+  - spec: monitoring/api/cart-to-order.spec.ts
+    summary: Add-to-cart chain — product → inventory → pricing → recommendations → order
+    service: checkout
+    criticality: critical
