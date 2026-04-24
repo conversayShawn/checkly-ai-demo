@@ -95,5 +95,9 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
   If uncertain about a detail, emit reasonable code and let phase 3 catch mismatches.
 - Do not touch pre-baked files. Do not replace mocked alert channel URLs. Do not run
   `npm run destroy` without being asked.
+- **Generated code and `MONITORING.md` read as real production monitoring.** No `demo`,
+  `sample`, `example`, `blueprint`, `walkthrough`, `for this flow`, or similar framing in
+  identifiers, tags, comments, or summary prose. Every file should be indistinguishable
+  from what Astroshop's on-call team would actually check into a real repo.
 - Auth is via `npx checkly login`. If test/deploy errors on auth, stop and tell the user —
   don't set `CHECKLY_API_KEY`/`CHECKLY_ACCOUNT_ID`.
