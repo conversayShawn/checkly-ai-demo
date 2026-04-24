@@ -82,7 +82,6 @@ Show Claude generating new monitoring in-context:
 | `UrlMonitor` · `TcpMonitor` · `HeartbeatMonitor` | `monitoring/uptime/*.check.ts` |
 | `BrowserCheck` × 4 (hero, browse, mobile canary, SSL canary) | `monitoring/browser/browser.check.ts` |
 | Suite specs (7 tests across 2 suites) | `monitoring/browser/suites/**/*.spec.ts` |
-| GitHub Actions (test on PR, deploy on main) | `.github/workflows/checkly.yml` |
 
 ## Alert channels are mocked
 
