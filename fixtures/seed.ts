@@ -12,6 +12,13 @@ if (!KEY) {
   process.exit(1)
 }
 
+async function get(key: string): Promise<Response> {
+  return fetch(`${API}/${key}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${KEY}` },
+  })
+}
+
 async function put(key: string, body: unknown): Promise<void> {
   const res = await fetch(`${API}/${key}`, {
     method: 'PUT',
@@ -27,11 +34,22 @@ async function put(key: string, body: unknown): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  console.log(`Seeding ${fixtures.length} fixtures to ${API}…`)
-  for (const { key, body } of fixtures) {
-    await put(key, body)
-    console.log(`  ✓ ${key}`)
+  // Skip-if-already-seeded: probe the first fixture as a sentinel. Cheap
+  // single round-trip that avoids the full PUT loop on repeat runs.
+  // If fixtures get corrupted out-of-band, run `npm run teardown && npm run seed`.
+  const sentinel = fixtures[0].key
+  const probe = await get(sentinel)
+  if (probe.ok) {
+    console.log(`Fixtures already present (sentinel "${sentinel}" returned 200). Skipping seed.`)
+    return
   }
+
+  console.log(`Seeding ${fixtures.length} fixtures to ${API}…`)
+  await Promise.all(
+    fixtures.map(({ key, body }) =>
+      put(key, body).then(() => console.log(`  ✓ ${key}`)),
+    ),
+  )
   console.log('Done.')
 }
 

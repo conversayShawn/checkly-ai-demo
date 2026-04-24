@@ -66,33 +66,42 @@ For each numbered phase, print **three lines**:
 
 Keep lines short and operational.
 
-## Silent preflight
+## Background preflight (non-blocking)
 
-Before the numbered phases, silently run `npm run seed` to populate the `jsonmap.site`
-fixtures. Do not narrate.
+At the very start of the flow, kick off **three commands in parallel as background processes**
+(Bash tool with `run_in_background: true`) and immediately proceed — do not wait, do not
+narrate, do not surface their output:
+
+- `npm run seed` — idempotent; skip-path ~2s, cold-seed ~5s.
+- `npm install` — 5–15s cold, <1s warm.
+- `npx skills add checkly/checkly-cli -y` — loads the Checkly construct reference into
+  Claude's context; 5–10s on first run, <1s cached.
+
+All three finish well before phase 3 (`npm run test`), which is the natural barrier. Phase 2
+(code generation) runs concurrently with them — generation is purely local Writes and doesn't
+depend on `node_modules`, Agent Skills, or seeded fixtures being present yet.
 
 ## Phases
 
-1. **`▸ Installing the toolchain and loading Checkly Agent Skills`** — run `npm install` and
-   `npx skills add checkly/checkly-cli -y` in parallel. ✓ line: "dependencies ready; Checkly
-   Agent Skills loaded" (or "already current" if no-op).
-
-2. **`▸ Sizing up the repo`** — list `monitoring/browser/` and `monitoring/api/`, read
+1. **`▸ Sizing up the repo`** — list `monitoring/browser/` and `monitoring/api/`, read
    `fixtures/items.ts`, reread `CLAUDE.md` for conventions. ✓ line reports the browser spec
-   count, MultiStep spec count, and fixture key count.
+   count, MultiStep spec count, and fixture key count (and notes the toolchain is still
+   loading in the background).
 
-3. **`▸ Writing the monitoring surface`** — emit **all Write tool calls in a single assistant
+2. **`▸ Writing the monitoring surface`** — emit **all Write tool calls in a single assistant
    turn** (parallel execution). Plan contents in one thinking pass, then batch. `MONITORING.md`
-   is the last Write in the batch. ✓ line reports total file count.
+   is the last Write in the batch. This runs concurrently with the background `npm install` +
+   Agent Skills load from the preflight; the two tracks converge at phase 3. ✓ line reports
+   total file count.
 
-4. **`▸ Type-checking`** — `npm run typecheck`. If it fails, read the error, fix, retry.
+3. **`▸ Dry-running checks on Checkly`** — `npm run test`. Checkly's test compiles the TS
+   project end-to-end, so no separate typecheck phase is needed. By now the background
+   toolchain load has long since finished. If compile errors surface, read, fix, retry.
+   ✓ line: "N checks validated — M passing / K degraded".
 
-5. **`▸ Dry-running checks on Checkly`** — `npm run test`. ✓ line: "N checks validated —
-   M passing / K degraded".
+4. **`▸ Deploying`** — `npm run deploy`. ✓ line: names what landed.
 
-6. **`▸ Deploying`** — `npm run deploy`. ✓ line: names what landed.
-
-7. **Wrap-up.** Print a summary titled **"Astroshop monitoring is live"** with:
+5. **Wrap-up.** Print a summary titled **"Astroshop monitoring is live"** with:
    - What got instrumented (one-line count per surface).
    - Intentional gaps to address next.
    - Public status page URL (under `checkly-status-page.com`).
@@ -109,7 +118,7 @@ fixtures. Do not narrate.
   That convention is retired — checks are self-describing via filename + tags.
 - Do not replace mocked alert channel URLs with real ones without explicit confirmation.
 - Do not run `npm run destroy` or `/teardown` unless explicitly asked.
-- If typecheck fails, fix before moving to test. Do not deploy broken code.
+- If `npm run test` surfaces compile errors, fix and rerun test. Do not deploy broken code.
 - Checkly auth is expected from `npx checkly login`, not env vars. If `npm run test` or
   `npm run deploy` fails with an authentication error, stop and tell the user to run
   `npx checkly login` — do not try to set `CHECKLY_API_KEY` or `CHECKLY_ACCOUNT_ID`.
