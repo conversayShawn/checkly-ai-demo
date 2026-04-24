@@ -11,6 +11,22 @@ scratch. The target URL and API base are configured in `CLAUDE.md`; you don't pr
 Speak as if you're an on-call engineer standing this up for Astroshop production — not as if
 you're running a demo.
 
+## ⚠ CRITICAL: file generation must be a single-turn parallel batch
+
+Phase 2 (writing the monitoring surface) must be **one assistant message containing every
+`Write` tool call as parallel tool_use blocks, and nothing else** — no narration between
+Writes, no "let me write the next one," no thinking split across turns.
+
+Concrete two-message pattern:
+
+1. **First message (plan):** one short block listing every file path you intend to write and
+   a one-line description each. Think through all file contents in this one pass.
+2. **Second message (batch):** ~12 parallel `Write` tool_use blocks, one per file. No prose
+   around them. This is the entire message.
+
+If you catch yourself emitting one `Write` and then narrating, **stop and re-batch**. Writing
+one file per turn is the #1 cause of this flow dragging from ~60s to 5+ minutes.
+
 ## Already present (do NOT regenerate)
 
 - `monitoring/browser/*.spec.ts` — Playwright specs against `prod-otel-demo.checkly.engineering`.
@@ -103,11 +119,13 @@ surface the error to the operator — do **not** silently retry.
    ✓ line: "N browser specs, M MultiStep specs, K fixture keys; toolchain still loading
    in background".
 
-2. **`▸ Writing the monitoring surface`** — emit **all Write tool calls in a single assistant
-   turn** (parallel execution). Plan contents in one thinking pass, then batch. `MONITORING.md`
-   is the last Write in the batch. This runs concurrently with the background `npm install` +
-   Agent Skills load from the preflight; the two tracks converge at phase 3. ✓ line reports
-   total file count.
+2. **`▸ Writing the monitoring surface`** — see the ⚠ CRITICAL section at the top of this
+   skill. Two messages only: (1) a short plan listing every file path, then (2) a single
+   message with every `Write` call as parallel tool_use blocks and no prose. `MONITORING.md`
+   is one of the Writes in that batch (written last in the generation pass, but in the same
+   parallel batch). This runs concurrently with the background `npm install` + Agent Skills
+   load from the preflight; the two tracks converge at phase 3. ✓ line reports total file
+   count.
 
 3. **`▸ Dry-running checks on Checkly`** — `npm run test`. Checkly's test compiles the TS
    project end-to-end, so no separate typecheck phase is needed. By now the background
