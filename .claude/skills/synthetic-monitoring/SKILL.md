@@ -50,7 +50,15 @@ concrete number`.
 
 **Preflight (silent, background, fire once each):**
 - Track A: `npm install && npm run seed` (chained — seed needs `tsx` from `node_modules`).
-- Track B: `npx skills add checkly/checkly-cli -y`.
+- Track B: `npx skills add checkly/checkly-cli -y` (safety net; on established demo boxes
+  it's already installed).
+
+**Before writing any check file, invoke the `checkly` skill** via the Skill tool in your
+first assistant message (alongside the preflight bashes and the `openapi.yaml` Read). That
+loads the current Checkly construct reference (V2 groups, `request: {}` shapes,
+`AssertionBuilder` / `UrlAssertionBuilder` APIs, `pwProjects` / `playwrightConfigPath` on
+`PlaywrightCheck`, etc.) into your context. Without it you will emit older-schema code from
+training-data memory and burn minutes rediscovering breakages via `npm run test`.
 
 1. **`▸ Reading the API spec`** — Read `openapi.yaml`. Batch with the preflight Bashes in
    the first assistant message. ✓: "N endpoints + M flows".
@@ -76,7 +84,13 @@ concrete number`.
 - **Keep writing continuously.** The expensive thing isn't the number of Writes per turn —
   it's thinking blocks *between* Writes. Don't pre-plan the full surface; don't deliberate
   on which file "should" come next. Write the next file you already have in your head, then
-  the next. First Write belongs in the first assistant message.
+  the next.
+- **Every construct shape comes from the `checkly` skill, not from memory.** Common pitfalls
+  if you skip this: `CheckGroup` (deprecated) vs `CheckGroupV2`, `url`/`host` at the top
+  level vs nested under `request: {}`, headers as an object vs array of `{key, value}`,
+  `jsonBody().isArray()` (doesn't exist), `PlaywrightCheck.projectName` (doesn't exist —
+  use `playwrightConfigPath` + `pwProjects`). If you haven't invoked the checkly skill yet,
+  do so before writing.
 - **Read exactly one file: `openapi.yaml`.** No specs, no configs, no `fixtures/items.ts`.
   If uncertain about a detail, emit reasonable code and let phase 3 catch mismatches.
 - Do not touch pre-baked files. Do not replace mocked alert channel URLs. Do not run
