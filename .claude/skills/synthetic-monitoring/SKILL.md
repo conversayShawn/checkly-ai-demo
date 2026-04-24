@@ -28,11 +28,14 @@ You decide the shape of the monitoring surface. Use the repo's inputs to ground 
 choices — do not follow a prescribed checklist:
 
 - **Browser checks** — one `BrowserCheck` per `.spec.ts` directly under `monitoring/browser/`
-  (not the `suites/` subdir). Read the spec filenames and the descriptive comment at the top
-  of each to pick a sensible tier and frequency per the matrix in `CLAUDE.md`.
-- **API checks** — read `fixtures/items.ts` to see what data exists on `jsonmap.site`. Build
-  `ApiCheck`s for the customer-facing surfaces those fixtures imply. Build `MultiStepCheck`s
-  wrapping the pre-baked `monitoring/api/*.spec.ts` flow scripts by path.
+  (not the `suites/` subdir). Pick tier and frequency from the **filename alone** (e.g.
+  `hero-banner` / `browse-products` are hot customer paths → tier:1; `mobile-canary` and
+  `ssl-canary` are canaries → tier:3). Do **not** open the spec files to "confirm" — the
+  filenames are self-describing and opening them wastes seconds per file.
+- **API checks** — read `fixtures/items.ts` once to see what data exists on `jsonmap.site`.
+  Build `ApiCheck`s for the customer-facing surfaces those fixtures imply. Build
+  `MultiStepCheck`s wrapping the pre-baked `monitoring/api/*.spec.ts` flow scripts **by path
+  only** (don't open them either).
 - **Uptime monitors** — at minimum one `UrlMonitor` for the homepage, one `TcpMonitor` for
   `jsonmap.site`, and one `HeartbeatMonitor` (deactivated) for a representative batch job.
 - **Orchestration** — alert channels, groups (by team ownership — `storefrontGroup`,
@@ -83,10 +86,15 @@ depend on `node_modules`, Agent Skills, or seeded fixtures being present yet.
 
 ## Phases
 
-1. **`▸ Sizing up the repo`** — list `monitoring/browser/` and `monitoring/api/`, read
-   `fixtures/items.ts`, reread `CLAUDE.md` for conventions. ✓ line reports the browser spec
-   count, MultiStep spec count, and fixture key count (and notes the toolchain is still
-   loading in the background).
+1. **`▸ Sizing up the repo`** (must complete in under ~3 seconds) — do exactly three things,
+   **in one parallel tool batch**:
+   - `ls monitoring/browser/` and `ls monitoring/browser/suites/` and `ls monitoring/api/`
+     to enumerate spec filenames.
+   - Read `fixtures/items.ts` (single Read).
+   - That's it. `CLAUDE.md` is already in context — don't reread. Do **not** open any
+     `.spec.ts` file; filenames alone carry intent.
+   ✓ line: "N browser specs, M MultiStep specs, K fixture keys; toolchain still loading
+   in background".
 
 2. **`▸ Writing the monitoring surface`** — emit **all Write tool calls in a single assistant
    turn** (parallel execution). Plan contents in one thinking pass, then batch. `MONITORING.md`
@@ -113,6 +121,9 @@ depend on `node_modules`, Agent Skills, or seeded fixtures being present yet.
 
 - **Single-turn file generation is load-bearing.** Emit every Write in one assistant turn.
   Writing one file per turn drags the generation phase from ~60s to 5 minutes.
+- **Do not open `.spec.ts` files during sizing-up or generation.** Filenames are
+  self-describing; opening them to read contents is the #1 source of multi-minute hangs in
+  phase 1. Only `fixtures/items.ts` should be Read in phase 1.
 - Do not touch pre-baked files (specs, fixtures, configs, CSS).
 - Do not introduce `// Covers: MONITORING.md §X.Y` headers or `§X.Y` numbering anywhere.
   That convention is retired — checks are self-describing via filename + tags.
