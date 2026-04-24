@@ -41,8 +41,10 @@ choices — do not follow a prescribed checklist:
 - **Orchestration** — alert channels, groups (by team ownership — `storefrontGroup`,
   `platformApiGroup`, `sreGroup`), status-page services and status page, two dashboards
   (public themed with `astroshop.css`, internal with a `DEMO_SEED`-scoped URL), one weekly
-  maintenance window, and two `PlaywrightCheck`s matching the suite projects in
-  `playwright.config.ts`.
+  maintenance window, and two `PlaywrightCheck`s — one per suite directory you `ls`'d
+  (`cart-and-checkout` and `homepage-and-browsing`). The Playwright project names in
+  `playwright.config.ts` already match those directory names exactly — do **not** open
+  `playwright.config.ts` to verify.
 
 Tags, naming, logical-ID prefixes, and the tier × frequency matrix are all fixed in
 `CLAUDE.md`. Follow them exactly. **Do not** add `// Covers:` headers or `§X.Y` numbering —
@@ -84,6 +86,11 @@ All three finish well before phase 3 (`npm run test`), which is the natural barr
 (code generation) runs concurrently with them — generation is purely local Writes and doesn't
 depend on `node_modules`, Agent Skills, or seeded fixtures being present yet.
 
+**Fire each preflight command exactly once.** Do not re-seed, re-install, or re-add Agent
+Skills "to be safe" after the initial background fires. The seed is idempotent and has a
+skip-path; one run is enough. If a preflight command fails with a non-zero exit code,
+surface the error to the operator — do **not** silently retry.
+
 ## Phases
 
 1. **`▸ Sizing up the repo`** (must complete in under ~3 seconds) — do exactly three things,
@@ -121,9 +128,12 @@ depend on `node_modules`, Agent Skills, or seeded fixtures being present yet.
 
 - **Single-turn file generation is load-bearing.** Emit every Write in one assistant turn.
   Writing one file per turn drags the generation phase from ~60s to 5 minutes.
-- **Do not open `.spec.ts` files during sizing-up or generation.** Filenames are
-  self-describing; opening them to read contents is the #1 source of multi-minute hangs in
-  phase 1. Only `fixtures/items.ts` should be Read in phase 1.
+- **Read exactly one pre-baked file: `fixtures/items.ts`.** Nothing else. Not `.spec.ts`
+  files, not `playwright.config.ts`, not `checkly.config.ts`, not `package.json`, not
+  `tsconfig.json`. Filenames and `ls` output carry enough intent; the configs are already
+  correct and match the conventions below. Opening files "to verify" is the #1 source of
+  multi-minute hangs — if uncertain about a detail, **emit reasonable code and let
+  `npm run test` (phase 3) catch any mismatch**. Don't pre-verify.
 - Do not touch pre-baked files (specs, fixtures, configs, CSS).
 - Do not introduce `// Covers: MONITORING.md §X.Y` headers or `§X.Y` numbering anywhere.
   That convention is retired — checks are self-describing via filename + tags.
