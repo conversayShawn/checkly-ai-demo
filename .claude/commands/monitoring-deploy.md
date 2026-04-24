@@ -5,11 +5,10 @@ description: One-shot setup. Kicks off deps, Agent Skills, and fixture seeding i
 Run the `synthetic-monitoring` skill against Astroshop. Follow the phases and narration
 structure defined in `.claude/skills/synthetic-monitoring/SKILL.md` exactly.
 
-**Background preflight** — at the very start, kick off these three commands non-blocking
+**Background preflight** — at the very start, kick off these two tracks non-blocking
 (`run_in_background: true`) and immediately proceed:
-- `npm run seed`
-- `npm install`
-- `npx skills add checkly/checkly-cli -y`
+- Track A: `npm install && npm run seed` (chained — seed needs `tsx` from `node_modules`).
+- Track B: `npx skills add checkly/checkly-cli -y`
 
 **Then the numbered phases:**
 

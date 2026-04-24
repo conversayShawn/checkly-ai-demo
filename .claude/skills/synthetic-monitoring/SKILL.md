@@ -73,23 +73,24 @@ Keep lines short and operational.
 
 ## Background preflight (non-blocking)
 
-At the very start of the flow, kick off **three commands in parallel as background processes**
-(Bash tool with `run_in_background: true`) and immediately proceed — do not wait, do not
-narrate, do not surface their output:
+At the very start of the flow, kick off **two background tracks** (Bash tool with
+`run_in_background: true`) and immediately proceed — do not wait, do not narrate, do not
+surface their output:
 
-- `npm run seed` — idempotent; skip-path ~2s, cold-seed ~5s.
-- `npm install` — 5–15s cold, <1s warm.
-- `npx skills add checkly/checkly-cli -y` — loads the Checkly construct reference into
-  Claude's context; 5–10s on first run, <1s cached.
+- **Track A:** `npm install && npm run seed` — install first, then seed (seed depends on
+  `tsx` from `node_modules`, so it **must** wait for install). Chained `&&` in a single
+  background shell. Typical time: 5–15s cold, ~3s warm.
+- **Track B:** `npx skills add checkly/checkly-cli -y` — loads the Checkly construct
+  reference into Claude's context; 5–10s on first run, <1s cached.
 
-All three finish well before phase 3 (`npm run test`), which is the natural barrier. Phase 2
-(code generation) runs concurrently with them — generation is purely local Writes and doesn't
-depend on `node_modules`, Agent Skills, or seeded fixtures being present yet.
+Both tracks finish well before phase 3 (`npm run test`), which is the natural barrier. Phase
+2 (code generation) runs concurrently — generation is purely local Writes and doesn't depend
+on `node_modules`, Agent Skills, or seeded fixtures being present yet.
 
-**Fire each preflight command exactly once.** Do not re-seed, re-install, or re-add Agent
+**Fire each preflight track exactly once.** Do not re-seed, re-install, or re-add Agent
 Skills "to be safe" after the initial background fires. The seed is idempotent and has a
-skip-path; one run is enough. If a preflight command fails with a non-zero exit code,
-surface the error to the operator — do **not** silently retry.
+skip-path; one run is enough. If a preflight track fails with a non-zero exit code, surface
+the error to the operator — do **not** silently retry.
 
 ## Phases
 
