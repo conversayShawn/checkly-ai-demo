@@ -37,13 +37,14 @@ its error-group ID.
 ### 3. `▸ Triggering Checkly root-cause analysis`
 **Two calls, no polling:**
 
-1. `npx checkly rca run -e <error-group-id> -w -o json` — `-w` blocks until the analysis
-   completes. ⚠ The CLI **silently ignores `-w` when paired with `-o md`** (it prints
-   "--watch is not supported with --output md, ignoring" and returns immediately with
-   `status: pending`), which forces a polling loop that wastes minutes. **Always use
-   `-o json` here**, not `-o md`.
-2. `npx checkly rca get <rca-id> -o md` — instant, just fetches the formatted markdown
-   for display (the analysis is already done).
+1. `npx checkly rca run -e <error-group-id> -w` — **no `-o` flag**. `-w` blocks until the
+   analysis completes, but only with the default output. ⚠ The CLI silently disables `-w`
+   when paired with **any** `--output`/`-o` value (md, json, etc.), prints
+   "--watch is not supported with --output ..., ignoring", and returns immediately with
+   `status: pending`, which forces a polling loop that wastes minutes. Plain `rca run -w`
+   is the only way to actually block.
+2. `npx checkly rca get <rca-id> -o md` — instant, fetches the formatted markdown for
+   display (the analysis is already done).
 
 Print the markdown under a clear heading so the audience sees it's Checkly's output, not
 yours:
@@ -77,9 +78,9 @@ after resolution."
 - Do not rerun RCA on the same error group in the same session — reuse the existing
   result via `checkly rca get <rca-id>` if available.
 - **Never poll** with `until ... do sleep N; done` patterns waiting for RCA completion.
-  The blocking `rca run -w -o json` call is the only wait you should do. If you find
-  yourself writing a sleep loop, you forgot `-w` or paired it with `-o md` (which silently
-  disables it).
+  The blocking `rca run -w` (no `-o`) call is the only wait you should do. If you find
+  yourself writing a sleep loop, you either forgot `-w` or paired it with any `-o` flag
+  (which silently disables it).
 - Do not escalate (flip alert channel to real, create a real incident, page anyone)
   without explicit confirmation.
 
