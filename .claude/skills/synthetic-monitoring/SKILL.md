@@ -41,6 +41,18 @@ tier × frequency matrix) live in `CLAUDE.md`.
   2 `PlaywrightCheck`s matching the suite dirs — both **tier:1, EVERY_1M** per the matrix
   (checkout and browsing are revenue spine, not optional canaries).
 
+  **Alert-channel placeholders must use formats Checkly's client-side validator accepts**
+  (otherwise `npm run deploy` rejects them and you waste a retry loop). Use exactly:
+  - Slack webhook: `https://hooks.slack.com/services/T00000000/B00000000/000000000000000000000000`
+    (incrementing the trailing digits per channel: `…000000000000001`, `…000000000000002`).
+  - Phone (PhoneCall/SMS): a valid E.164 reserved-for-fiction number, e.g. `+14155550100`,
+    `+14155550101`, `+14155550102`. Never `+10000000000` or other shorter junk.
+  - Email: `oncall-<team>@example.com` (RFC-valid).
+  - Generic webhook: `https://example.com/webhooks/<team>`.
+
+  All channels carry `sendFailure: false` and `sendRecovery: false` — wiring exists for the
+  UI graph; nothing actually fires.
+
 No `// Covers:` headers, no `§X.Y` numbering — retired.
 
 ## MONITORING.md
@@ -88,9 +100,10 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
    or its update equivalent if it already exists). Idempotent; surface a one-line ✓.
 5. **`▸ Deploying`** — `npm run deploy`.
 6. **Wrap-up** — "Astroshop monitoring is live": what landed, intentional gaps, public
-   status page URL (`checkly-status-page.com`), public dashboard URL
-   (`checkly-dashboards.com`), project URL. Next step: "`/add-check` to add a surface,
-   `/add-flow` for a new journey."
+   status page URL (`checkly-status-page.com/<slug>`), public dashboard URL
+   (`checkly-dashboards.com/<slug>`). **Do not invent a Checkly project URL** —
+   `app.checklyhq.com/projects/...` is not a real path, don't print it. Next step:
+   "`/add-check` to add a surface, `/add-flow` for a new journey."
 
 ## Guardrails
 

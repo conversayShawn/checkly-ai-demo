@@ -27,7 +27,7 @@ structure defined in `.claude/skills/synthetic-monitoring/SKILL.md` exactly.
    the deployed checks can resolve `{{JSONMAP_API_KEY}}` at runtime.
 5. `npm run deploy`.
 6. Wrap-up summary ("Astroshop monitoring is live") with status page URL, dashboard URL,
-   project URL, and intentional gaps to address next.
+   and intentional gaps to address next. Do **not** print a fabricated Checkly project URL.
 
 This is the explicit, operator-triggered entry point for the same flow that natural prompts
 like *"set up monitoring for Astroshop"* fire automatically via the skill. The skill is the
