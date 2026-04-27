@@ -20,10 +20,13 @@ structure defined in `.claude/skills/synthetic-monitoring/SKILL.md` exactly.
    assistant turn for parallel execution. `MONITORING.md` is the last Write in the batch,
    a short post-hoc summary of what went in and why; it does not drive construct choice.
    Runs concurrently with the background `npm install` + Agent Skills load.
-3. `npm run test` — Checkly's test compiles the TS project, so no separate typecheck phase
-   is needed. This is the natural barrier for the background installs.
-4. `npm run deploy`.
-5. Wrap-up summary ("Astroshop monitoring is live") with status page URL, dashboard URL,
+3. `npm run test` — Checkly's test compiles the TS project (so no separate typecheck) and
+   passes `--env-file=.env` so `JSONMAP_API_KEY` reaches the API checks. Natural barrier
+   for the background installs.
+4. Push `JSONMAP_API_KEY` to the Checkly account via `npx checkly env add` (or update) so
+   the deployed checks can resolve `{{JSONMAP_API_KEY}}` at runtime.
+5. `npm run deploy`.
+6. Wrap-up summary ("Astroshop monitoring is live") with status page URL, dashboard URL,
    project URL, and intentional gaps to address next.
 
 This is the explicit, operator-triggered entry point for the same flow that natural prompts

@@ -14,8 +14,11 @@ tier × frequency matrix) live in `CLAUDE.md`.
 - `monitoring/browser/*.spec.ts` — 4 Playwright specs:
   `hero-banner` (tier:3), `browse-products` (tier:1), `mobile-canary` (tier:3),
   `ssl-canary` (tier:3 + `sslCheckDomain: 'prod-otel-demo.checkly.engineering'`).
-- `monitoring/browser/suites/` — `cart-and-checkout`, `homepage-and-browsing`.
-  PlaywrightCheck project names match exactly.
+- `monitoring/browser/suites/` — two suites, both **tier:1** (they cover revenue-critical
+  flows, not canaries):
+  - `cart-and-checkout` — checkout funnel (product → cart → checkout). `svc:checkout`.
+  - `homepage-and-browsing` — homepage + product browsing + recommendations. `svc:web`.
+  PlaywrightCheck project names match the directory names exactly.
 - `monitoring/api/*.spec.ts` — `order-flow.spec.ts`, `cart-to-order.spec.ts` (see
   `x-monitoring-flows`).
 - `monitoring/astroshop.css`, `fixtures/*`, configs.
@@ -24,15 +27,19 @@ tier × frequency matrix) live in `CLAUDE.md`.
 
 - **API checks** — one `ApiCheck` per `openapi.yaml` `path` entry. Tier from
   `x-monitoring.criticality` (critical → tier:1, routine → tier:2, low → tier:3),
-  `svc:*` tag from `x-monitoring.service`. Each `x-monitoring-flows` entry →
-  `MultiStepCheck` wrapping its `.spec.ts` by path.
+  `svc:*` tag from `x-monitoring.service`. **Every check MUST include the bearer auth
+  header** required by the spec's `security: bearerAuth`:
+  `headers: [{ key: 'Authorization', value: 'Bearer {{JSONMAP_API_KEY}}' }]`. Without it,
+  `jsonmap.site` returns 401 and every check fails at runtime. Each `x-monitoring-flows`
+  entry → `MultiStepCheck` wrapping its `.spec.ts` by path.
 - **Browser checks** — one `BrowserCheck` per spec listed above; tiers are authoritative.
 - **Uptime** — `UrlMonitor` (homepage, tier:1, EVERY_30S), `TcpMonitor` (`jsonmap.site`,
   tier:2), `HeartbeatMonitor` (deactivated, tier:3).
 - **Orchestration** — alert channels, 3 team groups (`storefrontGroup`, `platformApiGroup`,
   `sreGroup`), 3 status-page services, 1 status page, 2 dashboards (public themed with
   `astroshop.css`, internal with `DEMO_SEED`-scoped URL), 1 weekly `MaintenanceWindow`,
-  2 `PlaywrightCheck`s matching the suite dirs.
+  2 `PlaywrightCheck`s matching the suite dirs — both **tier:1, EVERY_1M** per the matrix
+  (checkout and browsing are revenue spine, not optional canaries).
 
 No `// Covers:` headers, no `§X.Y` numbering — retired.
 
@@ -72,9 +79,15 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
    `MONITORING.md` last. Don't pre-plan files you haven't started yet; don't deliberate on
    batch sizing; just write the next obvious file.
 3. **`▸ Dry-running checks on Checkly`** — `npm run test` (compiles end-to-end; no separate
-   typecheck needed). If compile errors, fix and retry.
-4. **`▸ Deploying`** — `npm run deploy`.
-5. **Wrap-up** — "Astroshop monitoring is live": what landed, intentional gaps, public
+   typecheck needed). The `test` script passes `--env-file=.env` so `JSONMAP_API_KEY` reaches
+   the API checks at run time. If compile errors, fix and retry.
+4. **`▸ Pushing runtime env vars to Checkly`** — before deploy, register `JSONMAP_API_KEY`
+   on the Checkly account so the deployed API checks can resolve `{{JSONMAP_API_KEY}}` at
+   runtime. Use the appropriate `npx checkly env` command from the loaded `checkly` skill
+   (typically `npx checkly env add JSONMAP_API_KEY "$(grep '^JSONMAP_API_KEY=' .env | cut -d= -f2-)" --locked`,
+   or its update equivalent if it already exists). Idempotent; surface a one-line ✓.
+5. **`▸ Deploying`** — `npm run deploy`.
+6. **Wrap-up** — "Astroshop monitoring is live": what landed, intentional gaps, public
    status page URL (`checkly-status-page.com`), public dashboard URL
    (`checkly-dashboards.com`), project URL. Next step: "`/add-check` to add a surface,
    `/add-flow` for a new journey."

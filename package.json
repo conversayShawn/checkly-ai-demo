@@ -7,7 +7,7 @@
   "scripts": {
     "seed": "tsx fixtures/seed.ts",
     "teardown": "tsx fixtures/teardown.ts",
-    "test": "npx checkly test",
+    "test": "npx checkly test --env-file=.env",
     "deploy": "npx checkly deploy --force",
     "destroy": "npx checkly destroy --force",
     "typecheck": "tsc --noEmit"
