@@ -19,7 +19,8 @@ deterministic so the investigation always reads the same shape.
 Print the investigation as four fixed sections, in this order:
 
 ### 1. `▸ Scanning for impacted checks`
-Run `npx checkly checks list --status failing --output json` and
+**Batch both list calls in parallel** in a single assistant message:
+`npx checkly checks list --status failing --output json` and
 `npx checkly checks list --status degraded --output json`. Identify the check the user
 is pointing at:
 - If they named a service (e.g. "checkout", "payment", "catalog"), filter by name or the
@@ -34,15 +35,27 @@ Run `npx checkly checks get <id> --output json` and extract the first entry from
 its error-group ID.
 
 ### 3. `▸ Triggering Checkly root-cause analysis`
-Run `npx checkly rca run -e <error-group-id> -w -o md`. The `-w` flag blocks until the
-analysis completes; `-o md` returns markdown. Print the raw RCA block under a clear
-heading so the audience can see it's Checkly's output, not yours:
+**Two calls, no polling:**
+
+1. `npx checkly rca run -e <error-group-id> -w -o json` — `-w` blocks until the analysis
+   completes. ⚠ The CLI **silently ignores `-w` when paired with `-o md`** (it prints
+   "--watch is not supported with --output md, ignoring" and returns immediately with
+   `status: pending`), which forces a polling loop that wastes minutes. **Always use
+   `-o json` here**, not `-o md`.
+2. `npx checkly rca get <rca-id> -o md` — instant, just fetches the formatted markdown
+   for display (the analysis is already done).
+
+Print the markdown under a clear heading so the audience sees it's Checkly's output, not
+yours:
 
 ```
 ━━━ Checkly RCA ━━━
-<raw markdown from checkly rca run>
+<raw markdown from checkly rca get>
 ━━━━━━━━━━━━━━━━━━
 ```
+
+**Do not poll** with `until ... grep -q completed; do sleep N; done` patterns. The
+blocking call in step 1 is the only wait you need.
 
 ### 4. **Recommended next action**
 One or two lines naming what the on-call engineer should do, derived from the check's own
@@ -63,6 +76,10 @@ after resolution."
   finding.
 - Do not rerun RCA on the same error group in the same session — reuse the existing
   result via `checkly rca get <rca-id>` if available.
+- **Never poll** with `until ... do sleep N; done` patterns waiting for RCA completion.
+  The blocking `rca run -w -o json` call is the only wait you should do. If you find
+  yourself writing a sleep loop, you forgot `-w` or paired it with `-o md` (which silently
+  disables it).
 - Do not escalate (flip alert channel to real, create a real incident, page anyone)
   without explicit confirmation.
 
