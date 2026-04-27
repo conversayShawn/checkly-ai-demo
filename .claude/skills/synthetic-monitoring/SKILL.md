@@ -25,21 +25,28 @@ tier × frequency matrix) live in `CLAUDE.md`.
 
 ## What to generate
 
-- **API checks** — one `ApiCheck` per `openapi.yaml` `path` entry. Tier from
-  `x-monitoring.criticality` (critical → tier:1, routine → tier:2, low → tier:3),
+- **API checks** — one `ApiCheck` per `openapi.yaml` `path` entry, **`group: platformApiGroup`**.
+  Tier from `x-monitoring.criticality` (critical → tier:1, routine → tier:2, low → tier:3),
   `svc:*` tag from `x-monitoring.service`. **Every check MUST include the bearer auth
   header** required by the spec's `security: bearerAuth`:
   `headers: [{ key: 'Authorization', value: 'Bearer {{JSONMAP_API_KEY}}' }]`. Without it,
   `jsonmap.site` returns 401 and every check fails at runtime. Each `x-monitoring-flows`
-  entry → `MultiStepCheck` wrapping its `.spec.ts` by path.
-- **Browser checks** — one `BrowserCheck` per spec listed above; tiers are authoritative.
-- **Uptime** — `UrlMonitor` (homepage, tier:1, EVERY_30S), `TcpMonitor` (`jsonmap.site`,
-  tier:2), `HeartbeatMonitor` (deactivated, tier:3).
+  entry → `MultiStepCheck` wrapping its `.spec.ts` by path, also `group: platformApiGroup`.
+- **Browser checks** — one `BrowserCheck` per spec listed above, **`group: storefrontGroup`**;
+  tiers are authoritative.
+- **Uptime** — `UrlMonitor` (homepage, tier:1, EVERY_30S), `TcpMonitor` (backend host,
+  tier:2), `HeartbeatMonitor` (deactivated, tier:3). All three belong to `sreGroup`.
 - **Orchestration** — alert channels, 3 team groups (`storefrontGroup`, `platformApiGroup`,
   `sreGroup`), 3 status-page services, 1 status page, 2 dashboards (public themed with
   `astroshop.css`, internal with `DEMO_SEED`-scoped URL), 1 weekly `MaintenanceWindow`,
-  2 `PlaywrightCheck`s matching the suite dirs — both **tier:1, EVERY_1M** per the matrix
-  (checkout and browsing are revenue spine, not optional canaries).
+  2 `PlaywrightCheck`s matching the suite dirs (both **`group: storefrontGroup`**, **tier:1,
+  EVERY_1M** per the matrix — checkout and browsing are revenue spine, not optional canaries).
+
+  **Every check must explicitly set `group:` to one of the three groups.** Group assignment
+  summary: BrowserCheck + PlaywrightCheck → `storefrontGroup`; ApiCheck + MultiStepCheck →
+  `platformApiGroup`; UrlMonitor + TcpMonitor + HeartbeatMonitor → `sreGroup`. A group with
+  zero checks after deploy means you forgot the `group:` property somewhere — verify with
+  `npx checkly check list` before declaring the flow done.
 
   **Alert-channel placeholders must use formats Checkly's client-side validator accepts**
   (otherwise `npm run deploy` rejects them and you waste a retry loop). Use exactly:
@@ -93,17 +100,20 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
 3. **`▸ Dry-running checks on Checkly`** — `npm run test` (compiles end-to-end; no separate
    typecheck needed). The `test` script passes `--env-file=.env` so `JSONMAP_API_KEY` reaches
    the API checks at run time. If compile errors, fix and retry.
-4. **`▸ Pushing runtime env vars to Checkly`** — before deploy, register `JSONMAP_API_KEY`
-   on the Checkly account so the deployed API checks can resolve `{{JSONMAP_API_KEY}}` at
+4. **`▸ Registering runtime secrets on Checkly`** — before deploy, push `JSONMAP_API_KEY`
+   to the Checkly account so the deployed API checks can resolve `{{JSONMAP_API_KEY}}` at
    runtime. Use the appropriate `npx checkly env` command from the loaded `checkly` skill
    (typically `npx checkly env add JSONMAP_API_KEY "$(grep '^JSONMAP_API_KEY=' .env | cut -d= -f2-)" --locked`,
-   or its update equivalent if it already exists). Idempotent; surface a one-line ✓.
+   or its update equivalent if it already exists). Idempotent. ✓ line should read like
+   "✓ Backend API credentials registered on the Checkly account" — **do not** name
+   `JSONMAP_API_KEY` or `jsonmap.site` in the operator-facing narration.
 5. **`▸ Deploying`** — `npm run deploy`.
 6. **Wrap-up** — "Astroshop monitoring is live": what landed, intentional gaps, public
-   status page URL (`checkly-status-page.com/<slug>`), public dashboard URL
-   (`checkly-dashboards.com/<slug>`). **Do not invent a Checkly project URL** —
-   `app.checklyhq.com/projects/...` is not a real path, don't print it. Next step:
-   "`/add-check` to add a surface, `/add-flow` for a new journey."
+   status page URL `https://<slug>.checkly-status-page.com`, public dashboard URL
+   `https://<slug>.checkly-dashboards.com`. **The `customUrl` slug becomes a subdomain,
+   not a path** — `checkly-status-page.com/<slug>` is a 404. **Do not invent a Checkly
+   project URL** — `app.checklyhq.com/projects/...` is not a real path, don't print it.
+   Next step: "`/add-check` to add a surface, `/add-flow` for a new journey."
 
 ## Guardrails
 
@@ -125,5 +135,10 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
   `sample`, `example`, `blueprint`, `walkthrough`, `for this flow`, or similar framing in
   identifiers, tags, comments, or summary prose. Every file should be indistinguishable
   from what Astroshop's on-call team would actually check into a real repo.
+- **Operator-facing narration (`▸` / `✓` lines, wrap-up summary) hides demo plumbing.**
+  Never name `jsonmap.site`, `JSONMAP_API_KEY`, the seed step, the fixture file, or any
+  other internal mock-backend detail. Refer to it abstractly as "backend API", "runtime
+  secrets", "fixtures", "the storefront's data plane". Internal instructions in this skill
+  use the real names (Claude needs them to act); the narration to the operator does not.
 - Auth is via `npx checkly login`. If test/deploy errors on auth, stop and tell the user —
   don't set `CHECKLY_API_KEY`/`CHECKLY_ACCOUNT_ID`.
