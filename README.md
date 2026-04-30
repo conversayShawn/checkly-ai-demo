@@ -1,109 +1,235 @@
-# Blueprint AI Demo
+# Astroshop Monitoring Demo
 
-A **pull-and-run Checkly CLI project** designed to be driven by Claude Code. Clone it, run
-one slash command, and you'll have a full monitoring-as-code setup — checks of every major
-type, groups, alert channels (mocked), a public status page, two dashboards, a maintenance
-window, and CI — deployed to your Checkly account.
+A pull-and-run Checkly CLI project driven by Claude Code. **Two natural-language prompts**
+stand up a complete monitoring-as-code surface against a sample e-commerce target
+("Astroshop"), then trigger Checkly's native LLM-driven RCA when something breaks.
 
-This repo is not meant to be a reference architecture. It's a **demo blueprint**: every
-decision optimizes for quickly standing up a complete, realistic-looking monitoring surface
-against a sample e-commerce target ("Astroshop") that a presenter can pitch against.
+This is a **demo blueprint for the Solutions Engineering team** — not a reference
+architecture. Optimize for: *looks real, lands fast, recovers cleanly*.
 
-## Before you run it
+---
 
-1. **Log in to Checkly** from the CLI — this is a prerequisite for `npm run test` and
-   `npm run deploy`:
-   ```
-   npx checkly login
-   ```
-   Pick the shared demo account from the team vault when prompted. Credentials get
-   cached under `~/Library/Preferences/@checkly/cli/auth.json`, so every subsequent
-   command runs non-interactively.
-2. Drop the jsonmap key (and optionally a `DEMO_SEED`) into `.env`:
-   ```
-   cp .env.example .env
-   # fill in JSONMAP_API_KEY
-   # optionally set DEMO_SEED so your internal dashboard URL is unique
-   ```
-3. Make sure Claude Code is installed and you're signed in.
+## The two demo prompts
 
-## The one-shot flow
+These are the spine of the demo. Type them verbatim in `claude` from the repo root.
 
-Two entry points, same flow:
+### 1. Build the monitoring  *(~60–90s with thinking effort = medium)*
+
+> **Please monitor my webshop at https://prod-otel-demo.checkly.engineering/ and all its key APIs.**
+
+Auto-fires the `synthetic-monitoring` skill. Claude reads `openapi.yaml`, generates every
+`.check.ts` file **live** (channels, groups, services, status page, dashboards,
+maintenance window, browser checks, API checks, MultiStep flows, uptime monitors), tests
+on Checkly infrastructure, registers the backend API credentials on the account, deploys,
+then writes `MONITORING.md` as a closing summary. Status page and dashboard URLs print in
+the wrap-up.
+
+### 2. Diagnose a failing check  *(~60–120s; floor is Checkly's RCA backend job)*
+
+> **My checkout check started failing, could you run RCA and tell me what's going on?**
+
+Auto-fires the `root-cause` skill. Claude finds failing checks, locates the latest error
+group, runs Checkly's native RCA (an LLM ingests the Playwright traces — DOM snapshots,
+network logs, screenshots, console output — for the last few failing runs), and prints a
+markdown block with classification, root cause, user impact, and evidence. Frames the
+next action by the check's tier + owning team.
+
+**To trigger a failure on demand:** flip a feature flag on the OTel demo backend (e.g.
+`adServiceFailure`, `cartServiceFailure`) and wait one tier:1 1-min cycle for the
+cart-and-checkout suite to catch it.
+
+### Fallbacks (if a natural prompt doesn't trigger the skill)
+
+`/monitoring-deploy` mirrors prompt 1; `/rca [surface]` mirrors prompt 2 (e.g.
+`/rca checkout`). Same flow, scripted invocation.
+
+---
+
+## Pre-demo checklist
+
+⚠ Run through **every** item before showtime — several are silent failures that surface
+mid-demo as a wall of red.
+
+### 1. Checkly auth — `npx checkly login`
+
+Pick the shared SE demo account from the team vault. Credentials cache under
+`~/Library/Preferences/@checkly/cli/auth.json` and persist across sessions; per-machine
+one-time setup.
+
+### 2. ⚠ `JSONMAP_API_KEY` in `.env` — **most-forgotten thing**
 
 ```
-claude
-> set up monitoring for Astroshop        # natural prompt — auto-fires the synthetic-monitoring skill
-> /monitoring-deploy                     # explicit slash command — same phases, scripted
+cp .env.example .env
+# paste JSONMAP_API_KEY (from team vault) into .env
+# optionally set DEMO_SEED=<your-initials> to avoid dashboard slug collisions
 ```
 
-Either path runs:
+Without this, every API check 401s at runtime and the silent env-push step has nothing
+to push. **Verify before you start:** `grep JSONMAP_API_KEY .env` should print a non-empty
+value.
 
-1. `npm install` + `npx skills add checkly/checkly-cli -y` (in parallel).
-2. Sizes up the repo (pre-baked Playwright specs under `monitoring/browser/` and
-   `monitoring/api/`, plus API fixtures in `fixtures/items.ts`).
-3. **Generates the monitoring surface live** — writes every `.check.ts` file in a single
-   batched turn (targeting ~60 seconds), then a short `MONITORING.md` summarizing what
-   went in and why.
-4. `npm run typecheck` → `npm run test` → `npm run deploy`.
+### 3. Pre-install Checkly's Agent Skills
 
-(Backend fixtures on `jsonmap.site` are seeded silently as setup plumbing — it doesn't
-surface in the narrated flow.)
+```
+npx skills add checkly/checkly-cli -y
+```
 
-The repo ships with `monitoring/` intentionally empty of `.check.ts` files — only the
-pre-baked Playwright specs, API fixtures, and dashboard CSS are committed. The Checkly
-wiring appears live on screen as Claude writes it, and `MONITORING.md` is the last artifact
-written: a post-hoc summary, not a pre-authored spec. When the flow finishes, the status
-page and dashboard URLs print alongside the list of intentional gaps to address next.
+Loads the current Checkly construct reference. Without it, Claude writes from
+training-data memory and emits older-schema code (`CheckGroup` instead of `CheckGroupV2`,
+top-level `url`/`host` instead of nested `request: {}`) that fails the deploy. The skill
+installs this in the background too as a safety net, but pre-installing skips a first-run
+delay.
 
-## Extend it interactively
+### 4. Tune Claude's thinking effort to **medium or low**
 
-Show Claude generating new monitoring in-context:
+Via `/config` in Claude Code, or `~/.claude/settings.json`. As of late April 2026, Opus
+4.7 with high thinking effort spends 1–3+ minutes deliberating before writing any
+`.check.ts` file — the single biggest source of dead air on stage. Medium/low cuts that
+to seconds with no measurable quality loss for this task.
 
-| Prompt | What happens |
+### 5. Pre-warm `node_modules` — `npm install`
+
+A cold first run adds 5–15s. The flow installs in the background, but pre-warming makes
+prompt 1 visibly snappier.
+
+### 6. Dry-run prompt 1 once before customer-facing demos
+
+Verify checks deploy, status page is populated, all three groups (Storefront / Platform
+API / SRE) have checks. Then either leave it deployed (re-running prompt 1 is idempotent)
+or `/teardown` to reset.
+
+---
+
+## Talking points while Claude works
+
+Narrate to the customer in roughly this rhythm.
+
+**During prompt 1 (synthetic-monitoring):**
+
+- *Read + preflight, ~2s* — "Claude reads our OpenAPI spec — the same artifact your
+  backend team already publishes. The `x-monitoring` extensions carry tier and
+  status-page-service mapping per endpoint."
+- *Live generation, ~30–60s* — "Watch the files appear. Channels, groups, status page,
+  dashboards. ApiCheck per endpoint, BrowserCheck per pre-built Playwright spec,
+  MultiStepCheck for the order flows. Tags, frequencies, group assignments — all derived
+  from the spec, not hardcoded."
+- *Test, ~10–30s* — "Checkly compiles the project and dry-runs every check on its own
+  infrastructure. Catches schema errors before deploy."
+- *Env push, ~2s* — "Claude registers backend API credentials on the Checkly account so
+  the deployed checks resolve secrets at runtime."
+- *Deploy, ~5–10s* — "Pushed. Status page and dashboards are live."
+
+**During prompt 2 (root-cause):**
+
+- *Scan + error group, ~5s* — "Listing every failing/degraded check across the account,
+  then pulling the most recent error group — the bucket Checkly uses to group all
+  failures with the same shape."
+- *Checkly RCA, 30s–2min* — "Now Checkly's native RCA. The LLM ingests the Playwright
+  traces — DOM snapshots, network requests, screenshots, console output — for the last
+  few failing runs. **This isn't Claude reasoning over them; this is Checkly's own
+  service.**"
+- *Next action* — "Routed by the check's tier and owning team. Tier 1 → page on-call.
+  Tier 2 → notify Slack. Tier 3 → log only."
+
+---
+
+## Gotchas
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Every API check 401s after deploy | `JSONMAP_API_KEY` missing from `.env`, or env-push step had nothing to push | `grep JSONMAP_API_KEY .env`; rerun prompt 1 |
+| Status page / dashboard URL 404s | Used path-style; Checkly serves them as subdomains | Format is `https://<slug>.checkly-status-page.com`, never `…/<slug>` |
+| SRE group empty after deploy | Uptime checks missing `group: sreGroup` property | `npx checkly check list`; redeploy if needed |
+| RCA hangs for minutes | `rca run` paired with any `-o` flag silently disables `-w` | Skill enforces `npx checkly rca run -e <id> -w` (no `-o`); never sleep-poll |
+| 1–3 min "Newspapering…" block before any code appears | Opus 4.7 at high thinking effort | Drop to medium/low (checklist step 4) |
+| `CheckGroup is deprecated` warnings or schema errors at deploy | Agent Skills not loaded; Claude used outdated training-data shapes | Pre-install via checklist step 3 |
+| Slack webhook / phone-number validator rejects a channel | Placeholder values too short or wrong format | Skill specifies valid placeholder shapes; don't override on stage |
+| Dashboard slug collision on shared account | Multiple presenters with the same default `DEMO_SEED` | Set `DEMO_SEED=<initials>` in `.env` |
+| `npm run seed` errors `tsx: command not found` | Ran before `node_modules` exists | Skill chains `npm install && npm run seed`; if running by hand, `npm install` first |
+| Wrap-up references a non-existent `app.checklyhq.com/projects/...` URL | Hallucinated link | Skill explicitly forbids it; only print status-page + dashboard URLs |
+| Generated check files contain `demo` / `sample` / `blueprint` framing | Skill drift / old run | Up-to-date skill bans demo language in code, comments, and `MONITORING.md` |
+
+---
+
+## What's in the repo
+
+**Pre-baked (committed, immutable during the demo):**
+
+| File | Purpose |
 |---|---|
-| `/add-check GET /orders/:id` | Writes an `ApiCheck` into `monitoring/api/`, wires it to `platformApiGroup` |
-| `/add-flow apply coupon at checkout` | Writes a new Playwright spec into `monitoring/browser/` |
-| `/publish-service Orders` | Adds a `StatusPageService` and card on the status page |
-| `/wire-alert api → slack` | Narrows a group's alert channels |
-| `/teardown` | `npx checkly destroy --force` + jsonmap teardown |
+| `openapi.yaml` | API surface description with `x-monitoring.*` extensions driving tier/svc tag derivation |
+| `monitoring/browser/*.spec.ts` | 4 Playwright specs (hero-banner, browse-products, mobile-canary, ssl-canary) |
+| `monitoring/browser/suites/<dir>/*.spec.ts` | 7 spec files across 2 PlaywrightCheck suite projects (`cart-and-checkout`, `homepage-and-browsing`) |
+| `monitoring/api/*.spec.ts` | 2 MultiStepCheck flow scripts (`order-flow.spec.ts`, `cart-to-order.spec.ts`) |
+| `monitoring/astroshop.css` | Custom CSS for the public status dashboard |
+| `fixtures/items.ts` + `seed.ts` + `teardown.ts` | Backend fixture data + idempotent seed (skips if already present) |
+| `package.json`, `checkly.config.ts`, `playwright.config.ts` | Tooling configs |
 
-## What's in the box
+**Generated live by the `synthetic-monitoring` skill (not committed):**
 
-| Construct | File |
-|---|---|
-| Mocked alert channels (Email · Slack · SMS · Webhook) | `monitoring/channels.check.ts` |
-| `CheckGroupV2` × 3 (Storefront · Platform API · SRE) | `monitoring/groups.check.ts` |
-| `StatusPageService` × 3 + `StatusPage` | `monitoring/services.check.ts` + `status-page.check.ts` |
-| `Dashboard` × 2 (public + internal) with custom CSS | `monitoring/dashboards.check.ts` + `monitoring/astroshop.css` |
-| `MaintenanceWindow` (weekly, recurring) | `monitoring/maintenance.check.ts` |
-| `PlaywrightCheck` × 2 (test suites) | `monitoring/suites.check.ts` |
-| `ApiCheck` × 9 + `MultiStepCheck` × 2 | `monitoring/api/*.check.ts` |
-| `UrlMonitor` · `TcpMonitor` · `HeartbeatMonitor` | `monitoring/uptime/*.check.ts` |
-| `BrowserCheck` × 4 (hero, browse, mobile canary, SSL canary) | `monitoring/browser/browser.check.ts` |
-| Suite specs (7 tests across 2 suites) | `monitoring/browser/suites/**/*.spec.ts` |
+- `monitoring/channels.check.ts` — 4 mocked alert channels (Email · Slack · SMS · Phone/Webhook)
+- `monitoring/groups.check.ts` — 3 `CheckGroupV2`s by team ownership (storefront · platform-api · sre)
+- `monitoring/services.check.ts` + `monitoring/status-page.check.ts`
+- `monitoring/dashboards.check.ts` — public (themed) + internal (DEMO_SEED-scoped)
+- `monitoring/maintenance.check.ts`
+- `monitoring/suites.check.ts` — `PlaywrightCheck` × 2 (tier:1)
+- `monitoring/browser/browser.check.ts` — `BrowserCheck` × 4
+- `monitoring/api/*.check.ts` — `ApiCheck` per OpenAPI endpoint + `MultiStepCheck` × 2
+- `monitoring/uptime/*.check.ts` — `UrlMonitor` + `TcpMonitor` + `HeartbeatMonitor`
+- `MONITORING.md` — post-hoc summary, not a driving spec
+
+---
 
 ## Alert channels are mocked
 
-All four channels ship with `sendFailure: false` and placeholder URLs/emails. The wiring
-exists so the Checkly UI renders the check-group-channel graph; nothing actually alerts.
-Don't replace a placeholder without confirming first.
+All four channels ship with `sendFailure: false` and `sendRecovery: false`. The wiring
+exists so Checkly's UI renders the channel-group-check graph; nothing actually fires.
+**Do not flip `sendFailure: true` on stage** — the account is shared, and you'd page real
+on-callers. If a customer asks about live alerting, walk them through what the production
+wiring would look like, then leave the demo account silenced.
+
+---
+
+## Resetting between demos
+
+```bash
+npm run destroy             # wipes deployed Checkly resources
+git checkout -- monitoring/ # restore the empty starting state (only specs/CSS remain)
+```
+
+That's it for the typical flow. `npm run teardown` on jsonmap fixtures is rarely needed —
+the seed is idempotent (skips when fixtures are already present). Re-running prompt 1
+will re-seed and re-generate everything from scratch.
+
+---
 
 ## Useful commands
 
 ```bash
-npm run seed        # PUT fixtures to jsonmap.site
-npm run teardown    # DELETE fixtures
-npm run test        # npx checkly test
+npm run seed        # PUT fixtures to backend (idempotent, skips if seeded)
+npm run teardown    # DELETE backend fixtures
+npm run test        # npx checkly test --env-file=.env
 npm run deploy      # npx checkly deploy --force
 npm run destroy     # npx checkly destroy --force
-npm run typecheck   # tsc --noEmit
+npm run typecheck   # tsc --noEmit (rarely needed; `npm run test` compiles too)
 ```
+
+---
+
+## Skills, commands, and where to look
+
+- `.claude/skills/synthetic-monitoring/SKILL.md` — auto-triggers on prompt 1 phrasing.
+- `.claude/skills/root-cause/SKILL.md` — auto-triggers on prompt 2 phrasing.
+- `.claude/commands/monitoring-deploy.md` — scripted fallback for prompt 1.
+- `.claude/commands/rca.md` — scripted fallback for prompt 2.
+- `.claude/commands/{add-check,add-flow,publish-service,wire-alert,teardown}.md` — extension points to demo on top.
+- `CLAUDE.md` — agent brief, conventions, alerting contract, tier × frequency matrix.
+
+---
 
 ## Links
 
 - [Checkly CLI docs](https://www.checklyhq.com/docs/cli/)
 - [Constructs reference](https://www.checklyhq.com/docs/cli/constructs-reference/)
 - [Checkly Agent Skills announcement](https://www.checklyhq.com/blog/checkly-agent-skills/)
-- [OTel Demo app (the browser target behind Astroshop)](https://prod-otel-demo.checkly.engineering)
-- [jsonmap.site (the API backend)](https://jsonmap.site)
+- [OTel Demo app (browser target)](https://prod-otel-demo.checkly.engineering)
