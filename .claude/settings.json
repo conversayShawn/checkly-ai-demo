@@ -1,5 +1,7 @@
 {
+  "effortLevel": "medium",
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
       "Bash(npx checkly:*)",
       "Bash(npm install)",
