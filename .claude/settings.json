@@ -10,7 +10,13 @@
       "Bash(npx tsx:*)",
       "Bash(tsx:*)",
       "Bash(ls:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(cut:*)",
+      "Bash(tail:*)",
+      "Bash(head:*)",
+      "Bash(awk:*)",
+      "Bash(sed:*)"
     ]
   }
 }
