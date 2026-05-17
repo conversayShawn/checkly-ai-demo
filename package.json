@@ -10,6 +10,7 @@
     "test": "npx checkly test --env-file=.env",
     "deploy": "npx checkly deploy --force",
     "destroy": "npx checkly destroy --force",
+    "reset": "bash scripts/reset.sh",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
