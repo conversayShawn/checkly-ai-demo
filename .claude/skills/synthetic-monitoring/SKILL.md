@@ -18,7 +18,17 @@ tier × frequency matrix) live in `CLAUDE.md`.
   flows, not canaries):
   - `cart-and-checkout` — checkout funnel (product → cart → checkout). `svc:checkout`.
   - `homepage-and-browsing` — homepage + product browsing + recommendations. `svc:web`.
-  PlaywrightCheck project names match the directory names exactly.
+  Each maps to a `PlaywrightCheck` via `playwrightConfigPath: '../playwright.config.ts'` +
+  `pwProjects`. **`playwrightConfigPath` resolves relative to the `.check.ts` file** — the
+  suites check lives in `monitoring/`, so the repo-root config is `'../playwright.config.ts'`
+  (`'./playwright.config.ts'` resolves to `monitoring/playwright.config.ts` and fails ENOENT).
+  **`pwProjects` takes the Playwright *project name* from `playwright.config.ts`,
+  NOT the directory name** — they differ. Use these exact strings (copy verbatim, spaces and
+  ampersands included):
+  - `cart-and-checkout` suite → `pwProjects: ['Cart & Checkout']`
+  - `homepage-and-browsing` suite → `pwProjects: ['Homepage & Browsing']`
+  Passing the directory slug (`'cart-and-checkout'`) yields an empty project match and a
+  failed deploy — don't guess, use the names above.
 - `monitoring/api/*.spec.ts` — `order-flow.spec.ts`, `cart-to-order.spec.ts` (see
   `x-monitoring-flows`).
 - `monitoring/astroshop.css`, `fixtures/*`, configs.
@@ -39,8 +49,11 @@ tier × frequency matrix) live in `CLAUDE.md`.
 - **Orchestration** — alert channels, 3 team groups (`storefrontGroup`, `platformApiGroup`,
   `sreGroup`), 3 status-page services, 1 status page, 2 dashboards (public themed with
   `astroshop.css`, internal with `DEMO_SEED`-scoped URL), 1 weekly `MaintenanceWindow`,
-  2 `PlaywrightCheck`s matching the suite dirs (both **`group: storefrontGroup`**, **tier:1,
+  2 `PlaywrightCheck`s (one per suite dir, both **`group: storefrontGroup`**, **tier:1,
   EVERY_1M** per the matrix — checkout and browsing are revenue spine, not optional canaries).
+  Wire each with `playwrightConfigPath: '../playwright.config.ts'` (the check file sits in
+  `monitoring/`) and the exact `pwProjects` name from the "Already present" section above
+  (`'Cart & Checkout'`, `'Homepage & Browsing'`).
 
   **Every check must explicitly set `group:` to one of the three groups.** Group assignment
   summary: BrowserCheck + PlaywrightCheck → `storefrontGroup`; ApiCheck + MultiStepCheck →
