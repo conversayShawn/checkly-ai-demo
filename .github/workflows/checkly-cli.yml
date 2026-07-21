@@ -1,0 +1,57 @@
+# Same job as checkly-action.yml using the plain CLI — the run: lines port to
+# GitLab, CircleCI, Jenkins etc. unchanged (use --reporter=ci off GitHub).
+# Docs: https://www.checklyhq.com/docs/cicd/
+
+name: Checkly (portable CLI)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Checkly checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Results record to Checkly by default in CLI 8.x — use --no-record to opt out.
+      - run: npx checkly test --reporter=github
+
+  deploy:
+    name: Deploy monitoring config
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: test # the gate: a failed test job means deploy never starts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx checkly deploy --force
+
+# The same two commands on other providers:
+#
+# GitLab CI (.gitlab-ci.yml)
+#   checkly:
+#     image: node:22
+#     script:
+#       - npm ci
+#       - npx checkly test --reporter=ci
+#
+# CircleCI (.circleci/config.yml)
+#   steps:
+#     - run: npm ci
+#     - run: npx checkly test --reporter=ci
+#
+# Jenkins (Jenkinsfile)
+#   sh 'npm ci'
+#   sh 'npx checkly test --reporter=ci'

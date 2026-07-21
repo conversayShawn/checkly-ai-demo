@@ -1,0 +1,39 @@
+# Runs Checkly checks via the official GitHub Action. GitHub-only.
+# See checkly-cli.yml for the portable equivalent.
+# Docs: https://www.checklyhq.com/docs/integrations/ci-cd/github/actions/
+
+name: Checkly (official GitHub Action)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Checkly checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: checkly/checkly-action@v1
+        with:
+          command: test
+          cli-version: latest
+          install-command: npm ci
+          reporting: auto # or: github-check | github-actions
+
+  deploy:
+    name: Deploy monitoring config
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: test # the gate: a failed test job means deploy never starts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The Action has no deploy command, only test/trigger.
+      - run: npx checkly deploy --force

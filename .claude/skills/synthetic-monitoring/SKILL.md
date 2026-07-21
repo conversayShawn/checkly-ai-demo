@@ -16,19 +16,13 @@ tier × frequency matrix) live in `CLAUDE.md`.
   `ssl-canary` (tier:3 + `sslCheckDomain: 'prod-otel-demo.checkly.engineering'`).
 - `monitoring/browser/suites/` — two suites, both **tier:1** (they cover revenue-critical
   flows, not canaries):
-  - `cart-and-checkout` — checkout funnel (product → cart → checkout). `svc:checkout`.
-  - `homepage-and-browsing` — homepage + product browsing + recommendations. `svc:web`.
-  Each maps to a `PlaywrightCheck` via `playwrightConfigPath: '../playwright.config.ts'` +
-  `pwProjects`. **`playwrightConfigPath` resolves relative to the `.check.ts` file** — the
-  suites check lives in `monitoring/`, so the repo-root config is `'../playwright.config.ts'`
-  (`'./playwright.config.ts'` resolves to `monitoring/playwright.config.ts` and fails ENOENT).
-  **`pwProjects` takes the Playwright *project name* from `playwright.config.ts`,
-  NOT the directory name** — they differ. Use these exact strings (copy verbatim, spaces and
-  ampersands included):
-  - `cart-and-checkout` suite → `pwProjects: ['Cart & Checkout']`
-  - `homepage-and-browsing` suite → `pwProjects: ['Homepage & Browsing']`
-  Passing the directory slug (`'cart-and-checkout'`) yields an empty project match and a
-  failed deploy — don't guess, use the names above.
+  - `cart-and-checkout/` (Playwright project name `'Cart & Checkout'`) — checkout funnel
+    (product → cart → checkout). `svc:checkout`.
+  - `homepage-and-browsing/` (Playwright project name `'Homepage & Browsing'`) — homepage
+    + product browsing + recommendations. `svc:web`.
+  **`pwProjects` must use the project `name` from `playwright.config.ts` verbatim**
+  (`'Cart & Checkout'`, `'Homepage & Browsing'`) — NOT the directory slug. Passing the
+  slug deploys silently but the suite resolves zero tests at run time.
 - `monitoring/api/*.spec.ts` — `order-flow.spec.ts`, `cart-to-order.spec.ts` (see
   `x-monitoring-flows`).
 - `monitoring/astroshop.css`, `fixtures/*`, configs.
@@ -48,12 +42,9 @@ tier × frequency matrix) live in `CLAUDE.md`.
   tier:2), `HeartbeatMonitor` (deactivated, tier:3). All three belong to `sreGroup`.
 - **Orchestration** — alert channels, 3 team groups (`storefrontGroup`, `platformApiGroup`,
   `sreGroup`), 3 status-page services, 1 status page, 2 dashboards (public themed with
-  `astroshop.css`, internal with `DEMO_SEED`-scoped URL), 1 weekly `MaintenanceWindow`,
-  2 `PlaywrightCheck`s (one per suite dir, both **`group: storefrontGroup`**, **tier:1,
+  `astroshop.css`, internal Ops dashboard), 1 weekly `MaintenanceWindow`,
+  2 `PlaywrightCheck`s matching the suite dirs (both **`group: storefrontGroup`**, **tier:1,
   EVERY_1M** per the matrix — checkout and browsing are revenue spine, not optional canaries).
-  Wire each with `playwrightConfigPath: '../playwright.config.ts'` (the check file sits in
-  `monitoring/`) and the exact `pwProjects` name from the "Already present" section above
-  (`'Cart & Checkout'`, `'Homepage & Browsing'`).
 
   **Every check must explicitly set `group:` to one of the three groups.** Group assignment
   summary: BrowserCheck + PlaywrightCheck → `storefrontGroup`; ApiCheck + MultiStepCheck →
@@ -137,9 +128,27 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
 - **Every construct shape comes from the `checkly` skill, not from memory.** Common pitfalls
   if you skip this: `CheckGroup` (deprecated) vs `CheckGroupV2`, `url`/`host` at the top
   level vs nested under `request: {}`, headers as an object vs array of `{key, value}`,
-  `jsonBody().isArray()` (doesn't exist), `PlaywrightCheck.projectName` (doesn't exist —
-  use `playwrightConfigPath` + `pwProjects`). If you haven't invoked the checkly skill yet,
-  do so before writing.
+  `jsonBody().isArray()` / `jsonBody().isNotEmpty()` (don't exist — use `.isNotNull()` or
+  a concrete `.equals()` / `.contains()` / `.isGreaterThan()`), `PlaywrightCheck.projectName`
+  (doesn't exist — use `playwrightConfigPath` + `pwProjects`). If you haven't invoked the
+  checkly skill yet, do so before writing.
+- **`playwrightConfigPath` is resolved relative to the `.check.ts` file**, not the repo
+  root. `playwright.config.ts` lives at the repo root and `suites.check.ts` lives in
+  `monitoring/`, so the correct value is `'../playwright.config.ts'`. Using
+  `'./playwright.config.ts'` will ENOENT at validation time.
+- **All customer-facing slugs (status page `url`, public dashboard `customUrl`) must include
+  `DEMO_SEED`.** The shared Checkly account already owns plain slugs like `astroshop` and
+  `astroshop-public` from prior demos — deploy will reject the second occurrence with
+  "Custom domain or url … is already in use." Prefix every slug with its surface
+  (`astroshop-status-${DEMO_SEED}`, `astroshop-public-${DEMO_SEED}`, etc.).
+  `checkly.config.ts` guarantees `process.env.DEMO_SEED` is set before checks load, so no
+  `?? 'fallback'` is needed at call sites.
+- **`npx checkly env add` flags**: only `--locked` and `--secret` exist. There is no
+  `--force`. If `add` errors because the key already exists, switch to `npx checkly env
+  update <KEY> <VALUE> --locked` rather than retrying with invented flags.
+- **`Dashboard.customCSS` takes a `{ entrypoint: './astroshop.css' }` reference, not a
+  string of CSS content.** Don't `fs.readFileSync` the file and pass the contents — the
+  construct expects a path so Checkly can bundle and host it. Wrong shape fails compile.
 - **Read exactly one file: `openapi.yaml`.** No specs, no configs, no `fixtures/items.ts`.
   If uncertain about a detail, emit reasonable code and let phase 3 catch mismatches.
 - Do not touch pre-baked files. Do not replace mocked alert channel URLs. Do not run
@@ -154,4 +163,5 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
   secrets", "fixtures", "the storefront's data plane". Internal instructions in this skill
   use the real names (Claude needs them to act); the narration to the operator does not.
 - Auth is via `npx checkly login`. If test/deploy errors on auth, stop and tell the user —
-  don't set `CHECKLY_API_KEY`/`CHECKLY_ACCOUNT_ID`.
+  don't set `CHECKLY_API_KEY`/`CHECKLY_ACCOUNT_ID` locally. The `.github/workflows/` files
+  are the exception: CI runners have no cached login and do use those vars.

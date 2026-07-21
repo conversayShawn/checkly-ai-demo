@@ -29,10 +29,16 @@ retired.
 The repo ships against a single shared Checkly account for convenience. **Authentication
 is via `npx checkly login` — a prerequisite.** The Checkly CLI caches credentials under
 `~/Library/Preferences/@checkly/cli/auth.json` and picks them up automatically for every
-subsequent call; there are no `CHECKLY_API_KEY` / `CHECKLY_ACCOUNT_ID` env vars to set.
+subsequent call; no `CHECKLY_API_KEY` / `CHECKLY_ACCOUNT_ID` env vars are needed **locally**.
 Assume the operator has already logged in before any slash command or skill runs. If
 `npm run test` / `npm run deploy` errors with an auth failure, stop and tell the user to
 run `npx checkly login`.
+
+**CI is the exception** — a runner has no cached login and authenticates via
+`CHECKLY_API_KEY` / `CHECKLY_ACCOUNT_ID` instead. The two workflows in
+`.github/workflows/` are reference material, not part of the demo flow:
+`checkly-action.yml` uses the official GitHub Action, `checkly-cli.yml` does the same
+job with plain `npx checkly` so it ports to any CI provider.
 
 `.env` only holds `JSONMAP_API_KEY` (for the mock API backend) and optional `DEMO_SEED`
 (which parameterises the internal dashboard's URL so multiple operators can coexist on the
