@@ -149,6 +149,12 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
 - **`Dashboard.customCSS` takes a `{ entrypoint: './astroshop.css' }` reference, not a
   string of CSS content.** Don't `fs.readFileSync` the file and pass the contents — the
   construct expects a path so Checkly can bundle and host it. Wrong shape fails compile.
+- **The backend API's baseline latency is ~2s, so never set `degradedResponseTime` below
+  `3000` on an ApiCheck.** Tighter thresholds don't fail the run — they come back amber
+  (`degraded`), which reads on stage like a real regression and costs a retry cycle to
+  tune away. Use `degradedResponseTime: 3000` / `maxResponseTime: 8000` for single-item
+  endpoints, and `5000` / `15000` for the full catalog list (`/items`), which is the
+  heaviest payload the backend serves. Browser and Playwright checks need no override.
 - **Read exactly one file: `openapi.yaml`.** No specs, no configs, no `fixtures/items.ts`.
   If uncertain about a detail, emit reasonable code and let phase 3 catch mismatches.
 - Do not touch pre-baked files. Do not replace mocked alert channel URLs. Do not run
