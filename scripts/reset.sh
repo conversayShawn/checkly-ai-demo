@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
-# Reset the demo: destroy deployed Checkly resources, remove the generated
-# monitoring files, and clear local run artifacts — so the next demo run starts
-# from the committed baseline.
+# Reset the demo: destroy deployed Checkly resources, restore the whole working
+# tree to the current branch's last commit, and clear local run artifacts — so
+# the next demo run starts from the committed baseline, whatever branch you're on.
 #
-# Generated files are removed with `git clean` scoped to the monitoring surface,
-# which only touches UNTRACKED files. The pre-baked specs, CSS, and fixtures are
-# committed, so they stay. Preserves .env and node_modules (both gitignored).
-# Pass --keep-generated to leave the generated .check.ts files on disk for diffing.
+# The restore is branch-agnostic by design: `git checkout -- .` reverts tracked
+# edits and `git clean -fd` removes untracked files repo-wide. So generated
+# monitoring files disappear on `main`, while committed content (pre-baked specs,
+# CSS, fixtures, and the terraform/ config on the demo/pw-terraform-* branches)
+# is restored rather than deleted. Ignored paths are NOT touched — `git clean`
+# runs without `-x`, so .env, node_modules, and .checkly survive.
+# Pass --keep-generated to leave the working tree exactly as-is for diffing.
 #
 # Upgrades the Checkly CLI to the latest release at the end. That rewrites
 # package.json and package-lock.json — pass --no-upgrade when you want the
 # working tree left clean for diffing.
 #
 # Usage:
-#   npm run reset                    # destroy Checkly resources, remove generated files + artifacts, upgrade CLI
+#   npm run reset                    # destroy Checkly resources, restore working tree + clear artifacts, upgrade CLI
 #   npm run reset -- --fixtures      # also DELETE the jsonmap fixtures
 #   npm run reset -- --no-upgrade    # skip the CLI upgrade
-#   npm run reset -- --keep-generated # leave generated .check.ts files on disk for diffing
+#   npm run reset -- --keep-generated # leave the working tree untouched for diffing
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -33,6 +36,17 @@ for arg in "$@"; do
   esac
 done
 
+# This script is itself tracked, so the restore step below would rewrite it while
+# bash is still reading it — bash reads scripts incrementally and would execute
+# garbage from the new byte offset. Refuse to run with uncommitted edits to self.
+if [ "$KEEP_GENERATED" = false ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if ! git diff --quiet -- scripts/reset.sh; then
+    echo "scripts/reset.sh has uncommitted changes — commit or stash them first," >&2
+    echo "or pass --keep-generated to skip the working-tree restore." >&2
+    exit 1
+  fi
+fi
+
 echo "==> Destroying Checkly resources"
 npx checkly destroy --force
 
@@ -44,13 +58,16 @@ else
 fi
 
 if [ "$KEEP_GENERATED" = true ]; then
-  echo "==> Keeping generated monitoring files (--keep-generated)"
+  echo "==> Keeping the working tree as-is (--keep-generated)"
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  echo "==> Removing generated monitoring files (restoring committed baseline)"
-  # Only removes UNTRACKED files under these paths; committed specs/CSS/fixtures stay.
-  git clean -fd monitoring MONITORING.md
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  echo "==> Restoring working tree to last commit on '$BRANCH'"
+  # Revert tracked edits, then drop untracked files. No -x, so ignored paths
+  # (.env, node_modules, .checkly) are preserved.
+  git checkout -- .
+  git clean -fd
 else
-  echo "==> Not a git work tree — skipping generated-file cleanup" >&2
+  echo "==> Not a git work tree — skipping working-tree restore" >&2
 fi
 
 echo "==> Clearing local run artifacts"
@@ -67,6 +84,6 @@ else
 fi
 
 echo
-echo "==> Done. Checkly account is clean and the repo is back to its committed baseline."
-echo "    .env, node_modules, and all committed files (specs, CSS, fixtures) are untouched."
-echo "    Generated .check.ts files were removed (pass --keep-generated to keep them)."
+echo "==> Done. Checkly account is clean and the working tree matches its last commit."
+echo "    .env, node_modules, and other ignored paths are untouched."
+echo "    Untracked files were removed and tracked edits reverted (pass --keep-generated to skip)."
