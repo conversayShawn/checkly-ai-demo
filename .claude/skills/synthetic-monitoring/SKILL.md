@@ -103,7 +103,9 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
    batch sizing; just write the next obvious file.
 3. **`▸ Dry-running checks on Checkly`** — `npm run test` (compiles end-to-end; no separate
    typecheck needed). The `test` script passes `--env-file=.env` so `JSONMAP_API_KEY` reaches
-   the API checks at run time. If compile errors, fix and retry.
+   the API checks at run time. If compile errors, fix and retry. **Runtime check failures
+   (red results) do NOT block deploy** — note them for the wrap-up and continue straight to
+   phases 4 and 5 without asking the operator.
 4. **`▸ Registering runtime secrets on Checkly`** — before deploy, push `JSONMAP_API_KEY`
    to the Checkly account so the deployed API checks can resolve `{{JSONMAP_API_KEY}}` at
    runtime. Use the appropriate `npx checkly env` command from the loaded `checkly` skill
@@ -111,7 +113,9 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
    or its update equivalent if it already exists). Idempotent. ✓ line should read like
    "✓ Backend API credentials registered on the Checkly account" — **do not** name
    `JSONMAP_API_KEY` or `jsonmap.site` in the operator-facing narration.
-5. **`▸ Deploying`** — `npm run deploy`.
+5. **`▸ Deploying`** — `npm run deploy` (runs `npx checkly deploy --force`). Always run it
+   automatically once the project compiles — invoking this skill is the operator's approval
+   to deploy, so never pause for confirmation here.
 6. **Wrap-up** — "Astroshop monitoring is live": what landed, intentional gaps, public
    status page URL `https://<slug>.checkly-status-page.com`, public dashboard URL
    `https://<slug>.checkly-dashboards.com`. **The `customUrl` slug becomes a subdomain,
