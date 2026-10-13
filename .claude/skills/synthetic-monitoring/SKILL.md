@@ -43,10 +43,22 @@ tier × frequency matrix) live in `CLAUDE.md`.
 - **Uptime** — `UrlMonitor` (homepage, tier:1, EVERY_30S), `TcpMonitor`
   (`prod-otel-demo.checkly.engineering:443`, tier:2), `HeartbeatMonitor` (deactivated, tier:3). All three belong to `sreGroup`.
 - **Orchestration** — alert channels, 3 team groups (`storefrontGroup`, `platformApiGroup`,
-  `sreGroup`), 3 status-page services, 1 status page, 2 dashboards (public themed with
+  `sreGroup`), 1 status page with 3 components and 3 automation rules (see below),
+  2 dashboards (public themed with
   `astroshop.css`, internal Ops dashboard), 1 weekly `MaintenanceWindow`,
   2 `PlaywrightCheck`s matching the suite dirs (both **`group: storefrontGroup`**, **tier:1,
   EVERY_1M** per the matrix — checkout and browsing are revenue spine, not optional canaries).
+
+  **The status page is a `StatusPageV3`, all in `monitoring/status-page.check.ts`.** One
+  `StatusPageV3`, one `StatusPageV3Component` (`type: 'SERVICE'`) per service — `svc-web`,
+  `svc-api`, `svc-checkout`, each pointing at the page via `statusPage` with its own
+  `displayOrder` — and one `StatusPageV3AutomationRule` per component (`rule-web`,
+  `rule-api`, `rule-checkout`) with `tags: ['incident:<svc>']`,
+  `components: [{ component, targetImpact: 'MAJOR_OUTAGE' }]` and
+  **`notifySubscribers: false`**. Every tier:1 check carries the matching `incident:<svc>`
+  tag next to its `svc:<svc>` tag; tier:2 and tier:3 checks do not, so only checks we'd
+  page on open an incident. Rules match on ANY listed tag, so never put `svc:*` or
+  `tier:*` in a rule's `tags`.
 
   **Every check must explicitly set `group:` to one of the three groups.** Group assignment
   summary: BrowserCheck + PlaywrightCheck → `storefrontGroup`; ApiCheck + MultiStepCheck →
@@ -98,8 +110,8 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
    then keep writing without pausing to plan.** In the **first assistant message** (same
    message as the preflight bashes and the `openapi.yaml` Read), also emit Writes for the
    deterministic orchestration files that don't depend on the spec —
-   `monitoring/channels.check.ts`, `monitoring/groups.check.ts`, `monitoring/services.check.ts`.
-   From there, continuously emit the next file you already know how to write: status page →
+   `monitoring/channels.check.ts`, `monitoring/groups.check.ts`, `monitoring/status-page.check.ts`.
+   From there, continuously emit the next file you already know how to write:
    dashboards → maintenance → suites → uptime → browser → API checks → MultiStep checks →
    `MONITORING.md` last. Don't pre-plan files you haven't started yet; don't deliberate on
    batch sizing; just write the next obvious file.
@@ -128,8 +140,12 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
   level vs nested under `request: {}`, headers as an object vs array of `{key, value}`,
   `jsonBody().isArray()` / `jsonBody().isNotEmpty()` (don't exist — use `.isNotNull()` or
   a concrete `.equals()` / `.contains()` / `.isGreaterThan()`), `PlaywrightCheck.projectName`
-  (doesn't exist — use `playwrightConfigPath` + `pwProjects`). If you haven't invoked the
-  checkly skill yet, do so before writing.
+  (doesn't exist — use `playwrightConfigPath` + `pwProjects`), `StatusPage` /
+  `StatusPageService` with `cards` and per-check `triggerIncident` (deprecated — use
+  `StatusPageV3`, `StatusPageV3Component`, `StatusPageV3AutomationRule`). If you haven't
+  invoked the checkly skill yet, do so before writing.
+- **No `themeColors` on the status page** — it needs a custom-theme-colors plan
+  entitlement and deploy rejects it without one; `defaultTheme` is fine.
 - **`playwrightConfigPath` is resolved relative to the `.check.ts` file**, not the repo
   root. `playwright.config.ts` lives at the repo root and `suites.check.ts` lives in
   `monitoring/`, so the correct value is `'../playwright.config.ts'`. Using

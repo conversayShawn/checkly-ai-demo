@@ -18,7 +18,7 @@ These are the spine of the demo. Type them verbatim in `claude` from the repo ro
 > **Please monitor my webshop at https://prod-otel-demo.checkly.engineering/ and all its key APIs.**
 
 Auto-fires the `synthetic-monitoring` skill. Claude reads `openapi.yaml`, generates every
-`.check.ts` file **live** (channels, groups, services, status page, dashboards,
+`.check.ts` file **live** (channels, groups, status page with components and incident automation, dashboards,
 maintenance window, browser checks, API checks, MultiStep flows, uptime monitors), tests
 on Checkly infrastructure, deploys,
 then writes `MONITORING.md` as a closing summary. Status page and dashboard URLs print in
@@ -162,7 +162,7 @@ Narrate to the customer in roughly this rhythm.
 
 - `monitoring/channels.check.ts` — 4 mocked alert channels (Email · Slack · SMS · Phone/Webhook)
 - `monitoring/groups.check.ts` — 3 `CheckGroupV2`s by team ownership (storefront · platform-api · sre)
-- `monitoring/services.check.ts` + `monitoring/status-page.check.ts`
+- `monitoring/status-page.check.ts` — `StatusPageV3` + 3 components + 3 automation rules
 - `monitoring/dashboards.check.ts` — public (themed) + internal (DEMO_SEED-scoped)
 - `monitoring/maintenance.check.ts`
 - `monitoring/suites.check.ts` — `PlaywrightCheck` × 2 (tier:1)

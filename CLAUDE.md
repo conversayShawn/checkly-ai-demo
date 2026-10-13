@@ -73,8 +73,7 @@ track, not by tier.
 monitoring/
 ├─ channels.check.ts       # 4 mocked alert channels
 ├─ groups.check.ts         # storefrontGroup · platformApiGroup · sreGroup (by owning team)
-├─ services.check.ts       # StatusPageService × 3 (web / api / checkout)
-├─ status-page.check.ts    # single StatusPage with 2 cards
+├─ status-page.check.ts    # StatusPageV3 + 3 components (web / api / checkout) + 3 automation rules
 ├─ dashboards.check.ts     # public + internal Dashboard (public uses astroshop.css)
 ├─ astroshop.css           # custom CSS for the public dashboard
 ├─ maintenance.check.ts    # recurring MaintenanceWindow
@@ -114,10 +113,11 @@ monitoring/
 - **File suffix** — `.check.ts` means "registers Checkly resources"; `.spec.ts` means "Playwright spec".
   `checkMatch` is `monitoring/**/*.check.ts`.
 - **Logical IDs** — every construct gets a stable, prefixed id: `api-*`, `uptime-*`, `suite-*`,
-  `svc-*`, `dash-*`, `public-*`, `weekly-*`, plus team names for groups (`storefront`,
+  `svc-*` (status page components), `rule-*` (status page automation rules), `dash-*`, `public-*`, `weekly-*`, plus team names for groups (`storefront`,
   `platform-api`, `sre`).
 - **Tags** — every check carries `svc:web|api|checkout` + `tier:1|2|3`, its owning team tag,
-  and `public` when customer-facing. See the Alerting contract above for the tier × frequency
+  and `public` when customer-facing. `tier:1` checks also carry `incident:web|api|checkout`,
+  the tag the status page automation rules match on to open an incident on that component. See the Alerting contract above for the tier × frequency
   matrix.
 - **Runtime** — pinned to `2025.04`. Playwright version matches (1.54.1).
 - **No real notifications** — see Alerting contract above.
