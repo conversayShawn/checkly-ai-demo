@@ -10,5 +10,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["checkly.config.ts", "playwright.config.ts", "monitoring/**/*.ts", "fixtures/**/*.ts"]
+  "include": ["checkly.config.ts", "playwright.config.ts", "monitoring/**/*.ts"]
 }

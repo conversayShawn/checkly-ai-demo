@@ -62,8 +62,8 @@ blocking call in step 1 is the only wait you need.
 One or two lines naming what the on-call engineer should do, derived from the check's own
 tags (tier + owning team, both present on the check file and returned by
 `checkly checks get`):
-- tier:1 → "Page `#oncall-<team>` and open an incident on the status page's <service>
-  card."
+- tier:1 → "Page `#oncall-<team>` and confirm the automated incident on the status page's
+  <service> component."
 - tier:2 → "Notify `#oncall-<team>` via Slack; ticket within the hour."
 - tier:3 → "Log for the daily review; no paging required."
 If a matching runbook exists in `RUNBOOKS/` (e.g. `checkout-degraded.md`,

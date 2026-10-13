@@ -20,8 +20,9 @@ Conventions:
 
 - Filenames end in `.check.ts` (except raw Playwright suite specs, which end in `.spec.ts`)
 - Every construct takes a stable `logicalId` — prefix with `api-`, `uptime-`, `suite-`, etc.
-- API checks hitting `jsonmap.site` must send `Authorization: Bearer ${process.env.JSONMAP_API_KEY}`
+- API checks target the storefront API at `https://prod-otel-demo.checkly.engineering/api` — public, no auth header
 - Every check carries two tags for filtering: `svc:web|api|checkout` (which status-page service it rolls up to) and `tier:1|2|3` (1 = pages, 2 = notifies, 3 = logs only). Customer-facing checks also carry `public`.
-- If the check represents a user-facing capability, wire `triggerIncident` to the matching
-  service in `monitoring/services.check.ts` (webService / apiService / checkoutService)
+- A `tier:1` check also carries `incident:web|api|checkout` so the matching automation rule
+  in `monitoring/status-page.check.ts` opens an incident on that status page component when
+  it fails. Don't use the deprecated per-check `triggerIncident`.
 - When done, run `npm run test` to dry-run **only the new check** using `-g` or `--only`

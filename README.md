@@ -18,9 +18,9 @@ These are the spine of the demo. Type them verbatim in `claude` from the repo ro
 > **Please monitor my webshop at https://prod-otel-demo.checkly.engineering/ and all its key APIs.**
 
 Auto-fires the `synthetic-monitoring` skill. Claude reads `openapi.yaml`, generates every
-`.check.ts` file **live** (channels, groups, services, status page, dashboards,
+`.check.ts` file **live** (channels, groups, status page with components and incident automation, dashboards,
 maintenance window, browser checks, API checks, MultiStep flows, uptime monitors), tests
-on Checkly infrastructure, registers the backend API credentials on the account, deploys,
+on Checkly infrastructure, deploys,
 then writes `MONITORING.md` as a closing summary. Status page and dashboard URLs print in
 the wrap-up.
 
@@ -56,17 +56,15 @@ Pick the shared SE demo account from the team vault. Credentials cache under
 `~/Library/Preferences/@checkly/cli/auth.json` and persist across sessions; per-machine
 one-time setup.
 
-### 2. ⚠ `JSONMAP_API_KEY` in `.env` — **most-forgotten thing**
+### 2. Optional — `DEMO_SEED` in `.env`
 
 ```
 cp .env.example .env
-# paste JSONMAP_API_KEY (from team vault) into .env
-# optionally set DEMO_SEED=<your-initials> to avoid dashboard slug collisions
+# set DEMO_SEED=<your-initials> for readable status page / dashboard slugs
 ```
 
-Without this, every API check 401s at runtime and the silent env-push step has nothing
-to push. **Verify before you start:** `grep JSONMAP_API_KEY .env` should print a non-empty
-value.
+The backend API is public, so there are no keys to configure. Without `DEMO_SEED` the
+slugs get a short hash derived from your username and hostname.
 
 ### 3. Pre-install Checkly's Agent Skills
 
@@ -115,8 +113,6 @@ Narrate to the customer in roughly this rhythm.
   from the spec, not hardcoded."
 - *Test, ~10–30s* — "Checkly compiles the project and dry-runs every check on its own
   infrastructure. Catches schema errors before deploy."
-- *Env push, ~2s* — "Claude registers backend API credentials on the Checkly account so
-  the deployed checks resolve secrets at runtime."
 - *Deploy, ~5–10s* — "Pushed. Status page and dashboards are live."
 
 **During prompt 2 (root-cause):**
@@ -137,7 +133,6 @@ Narrate to the customer in roughly this rhythm.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Every API check 401s after deploy | `JSONMAP_API_KEY` missing from `.env`, or env-push step had nothing to push | `grep JSONMAP_API_KEY .env`; rerun prompt 1 |
 | Status page / dashboard URL 404s | Used path-style; Checkly serves them as subdomains | Format is `https://<slug>.checkly-status-page.com`, never `…/<slug>` |
 | SRE group empty after deploy | Uptime checks missing `group: sreGroup` property | `npx checkly check list`; redeploy if needed |
 | RCA hangs for minutes | `rca run` paired with any `-o` flag silently disables `-w` | Skill enforces `npx checkly rca run -e <id> -w` (no `-o`); never sleep-poll |
@@ -145,7 +140,6 @@ Narrate to the customer in roughly this rhythm.
 | `CheckGroup is deprecated` warnings or schema errors at deploy | Agent Skills not loaded; Claude used outdated training-data shapes | Pre-install via checklist step 3 |
 | Slack webhook / phone-number validator rejects a channel | Placeholder values too short or wrong format | Skill specifies valid placeholder shapes; don't override on stage |
 | Dashboard slug collision on shared account | Multiple presenters with the same default `DEMO_SEED` | Set `DEMO_SEED=<initials>` in `.env` |
-| `npm run seed` errors `tsx: command not found` | Ran before `node_modules` exists | Skill chains `npm install && npm run seed`; if running by hand, `npm install` first |
 | Wrap-up references a non-existent `app.checklyhq.com/projects/...` URL | Hallucinated link | Skill explicitly forbids it; only print status-page + dashboard URLs |
 | Generated check files contain `demo` / `sample` / `blueprint` framing | Skill drift / old run | Up-to-date skill bans demo language in code, comments, and `MONITORING.md` |
 
@@ -162,14 +156,13 @@ Narrate to the customer in roughly this rhythm.
 | `monitoring/browser/suites/<dir>/*.spec.ts` | 7 spec files across 2 PlaywrightCheck suite projects (`cart-and-checkout`, `homepage-and-browsing`) |
 | `monitoring/api/*.spec.ts` | 2 MultiStepCheck flow scripts (`order-flow.spec.ts`, `cart-to-order.spec.ts`) |
 | `monitoring/astroshop.css` | Custom CSS for the public status dashboard |
-| `fixtures/items.ts` + `seed.ts` + `teardown.ts` | Backend fixture data + idempotent seed (skips if already present) |
 | `package.json`, `checkly.config.ts`, `playwright.config.ts` | Tooling configs |
 
 **Generated live by the `synthetic-monitoring` skill (not committed):**
 
 - `monitoring/channels.check.ts` — 4 mocked alert channels (Email · Slack · SMS · Phone/Webhook)
 - `monitoring/groups.check.ts` — 3 `CheckGroupV2`s by team ownership (storefront · platform-api · sre)
-- `monitoring/services.check.ts` + `monitoring/status-page.check.ts`
+- `monitoring/status-page.check.ts` — `StatusPageV3` + 3 components + 3 automation rules
 - `monitoring/dashboards.check.ts` — public (themed) + internal (DEMO_SEED-scoped)
 - `monitoring/maintenance.check.ts`
 - `monitoring/suites.check.ts` — `PlaywrightCheck` × 2 (tier:1)
@@ -197,18 +190,14 @@ npm run destroy             # wipes deployed Checkly resources
 git checkout -- monitoring/ # restore the empty starting state (only specs/CSS remain)
 ```
 
-That's it for the typical flow. `npm run teardown` on jsonmap fixtures is rarely needed —
-the seed is idempotent (skips when fixtures are already present). Re-running prompt 1
-will re-seed and re-generate everything from scratch.
+That's it. Re-running prompt 1 will re-generate everything from scratch.
 
 ---
 
 ## Useful commands
 
 ```bash
-npm run seed        # PUT fixtures to backend (idempotent, skips if seeded)
-npm run teardown    # DELETE backend fixtures
-npm run test        # npx checkly test --env-file=.env
+npm run test        # npx checkly test
 npm run deploy      # npx checkly deploy --force
 npm run destroy     # npx checkly destroy --force
 npm run typecheck   # tsc --noEmit (rarely needed; `npm run test` compiles too)
@@ -232,4 +221,4 @@ npm run typecheck   # tsc --noEmit (rarely needed; `npm run test` compiles too)
 - [Checkly CLI docs](https://www.checklyhq.com/docs/cli/)
 - [Constructs reference](https://www.checklyhq.com/docs/cli/constructs-reference/)
 - [Checkly Agent Skills announcement](https://www.checklyhq.com/blog/checkly-agent-skills/)
-- [OTel Demo app (browser target)](https://prod-otel-demo.checkly.engineering)
+- [OTel Demo app (browser + API target)](https://prod-otel-demo.checkly.engineering)

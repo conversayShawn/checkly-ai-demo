@@ -1,5 +1,5 @@
 ---
-description: One-shot setup. Kicks off deps, Agent Skills, and fixture seeding in the background, generates the .check.ts wiring live (plus a post-hoc MONITORING.md summary), tests, deploys.
+description: One-shot setup. Kicks off deps and Agent Skills in the background, generates the .check.ts wiring live (plus a post-hoc MONITORING.md summary), tests, deploys.
 ---
 
 Run the `synthetic-monitoring` skill against Astroshop. Follow the phases and narration
@@ -7,7 +7,7 @@ structure defined in `.claude/skills/synthetic-monitoring/SKILL.md` exactly.
 
 **Background preflight** — at the very start, kick off these two tracks non-blocking
 (`run_in_background: true`) and immediately proceed:
-- Track A: `npm install && npm run seed` (chained — seed needs `tsx` from `node_modules`).
+- Track A: `npm install`
 - Track B: `npx skills add checkly/checkly-cli -y`
 
 **Then the numbered phases:**
@@ -20,13 +20,10 @@ structure defined in `.claude/skills/synthetic-monitoring/SKILL.md` exactly.
    assistant turn for parallel execution. `MONITORING.md` is the last Write in the batch,
    a short post-hoc summary of what went in and why; it does not drive construct choice.
    Runs concurrently with the background `npm install` + Agent Skills load.
-3. `npm run test` — Checkly's test compiles the TS project (so no separate typecheck) and
-   passes `--env-file=.env` so `JSONMAP_API_KEY` reaches the API checks. Natural barrier
-   for the background installs.
-4. Push `JSONMAP_API_KEY` to the Checkly account via `npx checkly env add` (or update) so
-   the deployed checks can resolve `{{JSONMAP_API_KEY}}` at runtime.
-5. `npm run deploy`.
-6. Wrap-up summary ("Astroshop monitoring is live") with status page URL, dashboard URL,
+3. `npm run test` — Checkly's test compiles the TS project (so no separate typecheck).
+   Natural barrier for the background installs.
+4. `npm run deploy`.
+5. Wrap-up summary ("Astroshop monitoring is live") with status page URL, dashboard URL,
    and intentional gaps to address next. Do **not** print a fabricated Checkly project URL.
 
 This is the explicit, operator-triggered entry point for the same flow that natural prompts

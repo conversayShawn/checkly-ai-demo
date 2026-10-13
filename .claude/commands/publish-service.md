@@ -4,12 +4,22 @@ description: Surface a service on the public status page. $ARGUMENTS is the serv
 
 Publish a service for: **$ARGUMENTS**
 
-1. Open `monitoring/services.check.ts` and add a new `StatusPageService`:
+The status page is a `StatusPageV3`; everything lives in `monitoring/status-page.check.ts`.
+
+1. Add a `StatusPageV3Component` pointing at the existing page, with the next free
+   `displayOrder`:
    ```ts
-   export const searchService = new StatusPageService('svc-<slug>', { name: '<Display Name>' })
+   export const searchComponent = new StatusPageV3Component('svc-<slug>', {
+     statusPage,
+     type: 'SERVICE',
+     name: '<Display Name>',
+     displayOrder: <n>,
+   })
    ```
-2. Open `monitoring/status-page.check.ts` and add the service to an existing card, or create a
-   new card if it doesn't fit an existing one.
-3. Open the relevant check(s) and wire `triggerIncident` to the new service so that a failure
-   on that check automatically opens an incident scoped to it.
+2. Add a `StatusPageV3AutomationRule` (`rule-<slug>`) with `tags: ['incident:<slug>']`,
+   `components: [{ component: searchComponent, targetImpact: 'MAJOR_OUTAGE' }]` and
+   `notifySubscribers: false`.
+3. Tag the relevant `tier:1` check(s) with `incident:<slug>` so a failure opens an incident
+   on the new component. Don't use the deprecated `StatusPageService` or per-check
+   `triggerIncident`.
 4. Run `npm run test` then `npm run deploy` and print the updated status page URL.

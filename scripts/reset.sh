@@ -6,7 +6,7 @@
 # The restore is branch-agnostic by design: `git checkout -- .` reverts tracked
 # edits and `git clean -fd` removes untracked files repo-wide. So generated
 # monitoring files disappear on `main`, while committed content (pre-baked specs,
-# CSS, fixtures, and the terraform/ config on the demo/pw-terraform-* branches)
+# CSS, and the terraform/ config on the demo/pw-terraform-* branches)
 # is restored rather than deleted. Ignored paths are NOT touched — `git clean`
 # runs without `-x`, so .env, node_modules, and .checkly survive.
 # Pass --keep-generated to leave the working tree exactly as-is for diffing.
@@ -17,19 +17,16 @@
 #
 # Usage:
 #   npm run reset                    # destroy Checkly resources, restore working tree + clear artifacts, upgrade CLI
-#   npm run reset -- --fixtures      # also DELETE the jsonmap fixtures
 #   npm run reset -- --no-upgrade    # skip the CLI upgrade
 #   npm run reset -- --keep-generated # leave the working tree untouched for diffing
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-WITH_FIXTURES=false
 UPGRADE=true
 KEEP_GENERATED=false
 for arg in "$@"; do
   case "$arg" in
-    --fixtures) WITH_FIXTURES=true ;;
     --no-upgrade) UPGRADE=false ;;
     --keep-generated) KEEP_GENERATED=true ;;
     *) echo "Unknown option: $arg" >&2; exit 1 ;;
@@ -49,13 +46,6 @@ fi
 
 echo "==> Destroying Checkly resources"
 npx checkly destroy --force
-
-if [ "$WITH_FIXTURES" = true ]; then
-  echo "==> Tearing down jsonmap fixtures"
-  npm run teardown
-else
-  echo "==> Leaving jsonmap fixtures in place (pass --fixtures to remove them)"
-fi
 
 if [ "$KEEP_GENERATED" = true ]; then
   echo "==> Keeping the working tree as-is (--keep-generated)"
