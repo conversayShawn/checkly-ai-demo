@@ -1,139 +1,133 @@
 openapi: 3.1.0
 info:
   title: Astroshop Backend API
-  version: 1.0.0
+  version: 2.0.0
   summary: >
-    Catalog, inventory, pricing, orders, and payment surfaces that the Astroshop
-    storefront calls. Served from a shared mock backend (jsonmap.site) during
-    monitoring setup. `x-monitoring` annotations below carry the criticality and
-    status-page-service mapping the synthetic-monitoring generator consumes.
+    Catalog, pricing, recommendations, cart, and shipping surfaces that the Astroshop
+    storefront calls. Served by the storefront's own API gateway under `/api`.
+    `x-monitoring` annotations below carry the criticality and status-page-service
+    mapping the synthetic-monitoring generator consumes. `x-monitoring.example` is a
+    ready-to-request path + query (already URL-encoded) — use it verbatim.
 
 servers:
-  - url: https://jsonmap.site/api/v1
-    description: Shared mock backend
+  - url: https://prod-otel-demo.checkly.engineering/api
+    description: Storefront API gateway
 
-security:
-  - bearerAuth: []
+# Public, unauthenticated API — no security scheme.
 
 tags:
-  - { name: health,          description: Backend health probes }
   - { name: catalog,         description: Product catalog surfaces }
-  - { name: orders,          description: Order lookup + mutation }
-  - { name: inventory,       description: Per-SKU stock levels }
-  - { name: pricing,         description: Per-SKU pricing and discounts }
+  - { name: pricing,         description: Per-product pricing and currency conversion }
   - { name: recommendations, description: Related-product suggestions }
-  - { name: payments,        description: Payment gateway health }
-  - { name: shipping,        description: Shipping cost + ETA by postcode }
+  - { name: cart,            description: Per-session shopping cart }
+  - { name: shipping,        description: Shipping quote by cart contents + address }
 
 paths:
-  /items:
+  /products:
     get:
-      summary: Catalog list — every item in the backend
-      operationId: listItems
+      summary: Catalog list — every product in the store
+      operationId: listProducts
       tags: [catalog]
       x-monitoring:
         service: api
         criticality: routine
-        assertions: [array-length-gte-15]   # catalog-depth canary
+        example: /products
+        assertions: [array-length-gte-5]   # catalog-depth canary
       responses:
-        '200': { description: ok }
+        '200': { description: 'Array of products ({ id, name, priceUsd, categories, … })' }
 
-  /items/system-health:
+  /products/{id}:
     get:
-      summary: Backend health probe
-      operationId: getSystemHealth
-      tags: [health]
-      x-monitoring: { service: api, criticality: routine }
-      responses:
-        '200': { description: ok }
-
-  /items/product-{slug}:
-    get:
-      summary: Product detail by slug
+      summary: Product detail by id
       operationId: getProductDetail
       tags: [catalog]
       parameters:
-        - { in: path, name: slug, required: true, schema: { type: string, example: telescope-starter } }
-      x-monitoring: { service: api, criticality: critical }
-      responses:
-        '200': { description: ok }
-
-  /items/order-{id}:
-    get:
-      summary: Order lookup
-      operationId: getOrder
-      tags: [orders]
-      parameters:
-        - { in: path, name: id, required: true, schema: { type: string, example: demo-1 } }
-      x-monitoring: { service: api, criticality: critical }
-      responses:
-        '200': { description: ok }
-
-  /items/inventory-{sku}:
-    get:
-      summary: Per-SKU inventory
-      operationId: getInventory
-      tags: [inventory]
-      parameters:
-        - { in: path, name: sku, required: true, schema: { type: string, example: TELE-001 } }
+        - { in: path, name: id, required: true, schema: { type: string, example: OLJCESPC7Z } }
       x-monitoring:
         service: api
         criticality: critical
-        note: blocks add-to-cart if stale
+        example: /products/OLJCESPC7Z
+        assertions: ['$.id == OLJCESPC7Z']
       responses:
-        '200': { description: ok }
+        '200': { description: 'Product ({ id, name, priceUsd: { currencyCode, units, nanos }, … })' }
 
-  /items/pricing-{sku}:
+  /products/{id}?currencyCode={currency}:
     get:
-      summary: Per-SKU pricing
-      operationId: getPricing
+      summary: Product pricing converted to a shopper currency
+      operationId: getProductPricing
       tags: [pricing]
       parameters:
-        - { in: path, name: sku, required: true, schema: { type: string, example: TELE-001 } }
-      x-monitoring: { service: api, criticality: critical }
+        - { in: path,  name: id,           required: true, schema: { type: string, example: OLJCESPC7Z } }
+        - { in: query, name: currencyCode, required: true, schema: { type: string, example: EUR } }
+      x-monitoring:
+        service: api
+        criticality: critical
+        example: /products/OLJCESPC7Z?currencyCode=EUR
+        assertions: ['$.priceUsd.currencyCode == EUR']
+        note: wrong or missing conversion shows shoppers the wrong price
       responses:
         '200': { description: ok }
 
-  /items/recommendations-{sku}:
+  /currency:
+    get:
+      summary: Supported currency codes
+      operationId: listCurrencies
+      tags: [pricing]
+      x-monitoring:
+        service: api
+        criticality: routine
+        example: /currency
+      responses:
+        '200': { description: 'Array of ISO currency codes' }
+
+  /recommendations:
     get:
       summary: Related-product recommendations
       operationId: getRecommendations
       tags: [recommendations]
       parameters:
-        - { in: path, name: sku, required: true, schema: { type: string, example: TELE-001 } }
+        - { in: query, name: productIds, required: true, schema: { type: string, example: OLJCESPC7Z } }
       x-monitoring:
         service: api
         criticality: low
+        example: /recommendations?productIds=OLJCESPC7Z
         note: non-blocking enhancement; degraded experience only
       responses:
-        '200': { description: ok }
+        '200': { description: 'Array of recommended products' }
 
-  /items/payment-health:
+  /cart:
     get:
-      summary: Payment gateway health
-      operationId: getPaymentHealth
-      tags: [payments]
-      x-monitoring: { service: checkout, criticality: critical }
+      summary: Cart contents for a shopper session
+      operationId: getCart
+      tags: [cart]
+      parameters:
+        - { in: query, name: sessionId,    required: true, schema: { type: string, example: synthetic-monitor } }
+        - { in: query, name: currencyCode, required: true, schema: { type: string, example: USD } }
+      x-monitoring:
+        service: checkout
+        criticality: critical
+        example: /cart?sessionId=synthetic-monitor&currencyCode=USD
+        assertions: ['$.items is present']
+        note: blocks add-to-cart and checkout when down
       responses:
-        '200': { description: ok }
+        '200': { description: '{ userId, items: [{ productId, quantity, product }] }' }
 
-  /items/shipping-{postcode}:
+  /shipping:
     get:
-      summary: Shipping cost + ETA by postcode
-      operationId: getShipping
+      summary: Shipping quote for a cart + destination
+      operationId: getShippingQuote
       tags: [shipping]
       parameters:
-        - { in: path, name: postcode, required: true, schema: { type: string, example: '10001' } }
-      x-monitoring: { service: checkout, criticality: critical }
+        - { in: query, name: itemList,     required: true, schema: { type: string, description: 'JSON array of { productId, quantity }' } }
+        - { in: query, name: currencyCode, required: true, schema: { type: string, example: USD } }
+        - { in: query, name: address,      required: true, schema: { type: string, description: 'JSON object with at least zipCode' } }
+      x-monitoring:
+        service: checkout
+        criticality: critical
+        example: /shipping?itemList=%5B%7B%22productId%22%3A%22OLJCESPC7Z%22%2C%22quantity%22%3A1%7D%5D&currencyCode=USD&address=%7B%22zipCode%22%3A%2210001%22%7D
+        assertions: ['$.currencyCode == USD']
       responses:
-        '200': { description: ok }
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      description: JSONMAP_API_KEY from the operator's .env.
+        '200': { description: '{ currencyCode, units, nanos }' }
 
 # Multi-step flows are pre-baked as Playwright API specs under monitoring/api/.
 # Wrap each in a MultiStepCheck construct, pointing at the spec file by path.
@@ -143,6 +137,6 @@ x-monitoring-flows:
     service: api
     criticality: critical
   - spec: monitoring/api/cart-to-order.spec.ts
-    summary: Add-to-cart chain — product → inventory → pricing → recommendations → order
+    summary: Add-to-cart chain — product → add to cart → read cart → recommendations → shipping quote → empty cart
     service: checkout
     criticality: critical

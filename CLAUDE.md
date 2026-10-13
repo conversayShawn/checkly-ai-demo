@@ -20,9 +20,9 @@ retired.
 
 - **Browser / frontend:** `https://prod-otel-demo.checkly.engineering` (the Astroshop
   storefront runs on Checkly's hosted OTel demo shop).
-- **API / backend:** `https://jsonmap.site/api/v1/items/:key` — a key/value-style backend.
-  Auth via `Authorization: Bearer ${JSONMAP_API_KEY}`. Fixtures are defined in
-  `fixtures/items.ts` and seeded with `npm run seed`.
+- **API / backend:** `https://prod-otel-demo.checkly.engineering/api` — the storefront's
+  own API gateway (products, currency, recommendations, cart, shipping), described in
+  `openapi.yaml`. Public, no auth, nothing to seed.
 
 ## Account configuration
 
@@ -40,9 +40,10 @@ run `npx checkly login`.
 `checkly-action.yml` uses the official GitHub Action, `checkly-cli.yml` does the same
 job with plain `npx checkly` so it ports to any CI provider.
 
-`.env` only holds `JSONMAP_API_KEY` (for the mock API backend) and optional `DEMO_SEED`
-(which parameterises the internal dashboard's URL so multiple operators can coexist on the
-same account without slug collisions). `.env.example` documents the shape. Do not suggest
+`.env` is optional and only holds `DEMO_SEED` (which parameterises the status page and
+dashboard URLs so multiple operators can coexist on the same account without slug
+collisions; `checkly.config.ts` derives one when it's unset). `.env.example` documents the
+shape. Do not suggest
 per-user onboarding or account creation unless explicitly asked.
 
 ## Alerting contract
@@ -78,17 +79,12 @@ monitoring/
 ├─ astroshop.css           # custom CSS for the public dashboard
 ├─ maintenance.check.ts    # recurring MaintenanceWindow
 ├─ suites.check.ts         # PlaywrightCheck × 2 (maps to playwright.config.ts projects)
-├─ api/*.check.ts          # ApiCheck + MultiStepCheck against jsonmap
+├─ api/*.check.ts          # ApiCheck + MultiStepCheck against the storefront API
 ├─ uptime/*.check.ts       # UrlMonitor · TcpMonitor · HeartbeatMonitor
 └─ browser/
    ├─ browser.check.ts     # BrowserCheck × 4 (wraps specs below)
    ├─ *.spec.ts            # Playwright specs referenced by browser.check.ts
    └─ suites/{name}/*.spec.ts   # run as PlaywrightCheck suites
-
-fixtures/
-├─ items.ts                # fixture definitions
-├─ seed.ts                 # PUTs every fixture to jsonmap
-└─ teardown.ts             # DELETEs every fixture
 
 .claude/commands/
 ├─ monitoring-deploy.md    # one-shot setup flow (explicit slash command)
@@ -133,7 +129,7 @@ fixtures/
 | Want to… | Command |
 |---|---|
 | Run the full setup flow (explicit, scripted safety net) | `/monitoring-deploy` — delegates to the `synthetic-monitoring` skill |
-| Generate monitoring live from a natural prompt | *"set up monitoring for my shop at example.com"* / *"build monitoring for Astroshop"* — auto-fires the `synthetic-monitoring` skill, which writes the `.check.ts` wiring live against the repo's pre-baked specs and fixtures |
+| Generate monitoring live from a natural prompt | *"set up monitoring for my shop at example.com"* / *"build monitoring for Astroshop"* — auto-fires the `synthetic-monitoring` skill, which writes the `.check.ts` wiring live against the repo's pre-baked specs |
 | Root-cause a failing check (explicit) | `/rca <surface>` (e.g. `/rca checkout`) |
 | Root-cause a failing check (natural prompt) | *"dig into the checkout failure"* — auto-fires the `root-cause` skill |
 | Add a new check | `/add-check <description>` |

@@ -21,7 +21,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Results record to Checkly by default in CLI 8.x — use --no-record to opt out.
+      # Results record to Checkly by default — use --no-record to opt out.
       - run: npx checkly test --reporter=github
 
   deploy:

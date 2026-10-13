@@ -9,8 +9,9 @@ tier × frequency matrix) live in `CLAUDE.md`.
 
 ## Already present (do NOT regenerate)
 
-- `openapi.yaml` — API surface, with `x-monitoring.service` and `x-monitoring.criticality`
-  per endpoint; `x-monitoring-flows` for the two MultiStep flows.
+- `openapi.yaml` — API surface, with `x-monitoring.service`, `x-monitoring.criticality`
+  and a ready-to-request `x-monitoring.example` per endpoint; `x-monitoring-flows` for the
+  two MultiStep flows.
 - `monitoring/browser/*.spec.ts` — 4 Playwright specs:
   `hero-banner` (tier:3), `browse-products` (tier:1), `mobile-canary` (tier:3),
   `ssl-canary` (tier:3 + `sslCheckDomain: 'prod-otel-demo.checkly.engineering'`).
@@ -25,21 +26,22 @@ tier × frequency matrix) live in `CLAUDE.md`.
   slug deploys silently but the suite resolves zero tests at run time.
 - `monitoring/api/*.spec.ts` — `order-flow.spec.ts`, `cart-to-order.spec.ts` (see
   `x-monitoring-flows`).
-- `monitoring/astroshop.css`, `fixtures/*`, configs.
+- `monitoring/astroshop.css`, configs.
 
 ## What to generate
 
 - **API checks** — one `ApiCheck` per `openapi.yaml` `path` entry, **`group: platformApiGroup`**.
   Tier from `x-monitoring.criticality` (critical → tier:1, routine → tier:2, low → tier:3),
-  `svc:*` tag from `x-monitoring.service`. **Every check MUST include the bearer auth
-  header** required by the spec's `security: bearerAuth`:
-  `headers: [{ key: 'Authorization', value: 'Bearer {{JSONMAP_API_KEY}}' }]`. Without it,
-  `jsonmap.site` returns 401 and every check fails at runtime. Each `x-monitoring-flows`
-  entry → `MultiStepCheck` wrapping its `.spec.ts` by path, also `group: platformApiGroup`.
+  `svc:*` tag from `x-monitoring.service`. **Build each request URL as the spec's
+  `servers[0].url` + the endpoint's `x-monitoring.example`, verbatim** — the example is
+  already URL-encoded (the shipping quote takes JSON in its query string), so don't
+  re-encode or rebuild it from the parameter list. The API is public: no auth header, no
+  secrets. Each `x-monitoring-flows` entry → `MultiStepCheck` wrapping its `.spec.ts` by
+  path, also `group: platformApiGroup`.
 - **Browser checks** — one `BrowserCheck` per spec listed above, **`group: storefrontGroup`**;
   tiers are authoritative.
-- **Uptime** — `UrlMonitor` (homepage, tier:1, EVERY_30S), `TcpMonitor` (backend host,
-  tier:2), `HeartbeatMonitor` (deactivated, tier:3). All three belong to `sreGroup`.
+- **Uptime** — `UrlMonitor` (homepage, tier:1, EVERY_30S), `TcpMonitor`
+  (`prod-otel-demo.checkly.engineering:443`, tier:2), `HeartbeatMonitor` (deactivated, tier:3). All three belong to `sreGroup`.
 - **Orchestration** — alert channels, 3 team groups (`storefrontGroup`, `platformApiGroup`,
   `sreGroup`), 3 status-page services, 1 status page, 2 dashboards (public themed with
   `astroshop.css`, internal Ops dashboard), 1 weekly `MaintenanceWindow`,
@@ -79,7 +81,7 @@ concrete number`.
 ## Phases
 
 **Preflight (silent, background, fire once each):**
-- Track A: `npm install && npm run seed` (chained — seed needs `tsx` from `node_modules`).
+- Track A: `npm install`.
 - Track B: `npx skills add checkly/checkly-cli -y` (safety net; on established demo boxes
   it's already installed).
 
@@ -102,21 +104,13 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
    `MONITORING.md` last. Don't pre-plan files you haven't started yet; don't deliberate on
    batch sizing; just write the next obvious file.
 3. **`▸ Dry-running checks on Checkly`** — `npm run test` (compiles end-to-end; no separate
-   typecheck needed). The `test` script passes `--env-file=.env` so `JSONMAP_API_KEY` reaches
-   the API checks at run time. If compile errors, fix and retry. **Runtime check failures
+   typecheck needed). If compile errors, fix and retry. **Runtime check failures
    (red results) do NOT block deploy** — note them for the wrap-up and continue straight to
-   phases 4 and 5 without asking the operator.
-4. **`▸ Registering runtime secrets on Checkly`** — before deploy, push `JSONMAP_API_KEY`
-   to the Checkly account so the deployed API checks can resolve `{{JSONMAP_API_KEY}}` at
-   runtime. Use the appropriate `npx checkly env` command from the loaded `checkly` skill
-   (typically `npx checkly env add JSONMAP_API_KEY "$(grep '^JSONMAP_API_KEY=' .env | cut -d= -f2-)" --locked`,
-   or its update equivalent if it already exists). Idempotent. ✓ line should read like
-   "✓ Backend API credentials registered on the Checkly account" — **do not** name
-   `JSONMAP_API_KEY` or `jsonmap.site` in the operator-facing narration.
-5. **`▸ Deploying`** — `npm run deploy` (runs `npx checkly deploy --force`). Always run it
+   phase 4 without asking the operator.
+4. **`▸ Deploying`** — `npm run deploy` (runs `npx checkly deploy --force`). Always run it
    automatically once the project compiles — invoking this skill is the operator's approval
    to deploy, so never pause for confirmation here.
-6. **Wrap-up** — "Astroshop monitoring is live": what landed, intentional gaps, public
+5. **Wrap-up** — "Astroshop monitoring is live": what landed, intentional gaps, public
    status page URL `https://<slug>.checkly-status-page.com`, public dashboard URL
    `https://<slug>.checkly-dashboards.com`. **The `customUrl` slug becomes a subdomain,
    not a path** — `checkly-status-page.com/<slug>` is a 404. **Do not invent a Checkly
@@ -147,19 +141,20 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
   (`astroshop-status-${DEMO_SEED}`, `astroshop-public-${DEMO_SEED}`, etc.).
   `checkly.config.ts` guarantees `process.env.DEMO_SEED` is set before checks load, so no
   `?? 'fallback'` is needed at call sites.
-- **`npx checkly env add` flags**: only `--locked` and `--secret` exist. There is no
-  `--force`. If `add` errors because the key already exists, switch to `npx checkly env
-  update <KEY> <VALUE> --locked` rather than retrying with invented flags.
 - **`Dashboard.customCSS` takes a `{ entrypoint: './astroshop.css' }` reference, not a
   string of CSS content.** Don't `fs.readFileSync` the file and pass the contents — the
   construct expects a path so Checkly can bundle and host it. Wrong shape fails compile.
-- **The backend API's baseline latency is ~2s, so never set `degradedResponseTime` below
-  `3000` on an ApiCheck.** Tighter thresholds don't fail the run — they come back amber
-  (`degraded`), which reads on stage like a real regression and costs a retry cycle to
-  tune away. Use `degradedResponseTime: 3000` / `maxResponseTime: 8000` for single-item
-  endpoints, and `5000` / `15000` for the full catalog list (`/items`), which is the
-  heaviest payload the backend serves. Browser and Playwright checks need no override.
-- **Read exactly one file: `openapi.yaml`.** No specs, no configs, no `fixtures/items.ts`.
+- **Never set `degradedResponseTime` below `3000` on an ApiCheck.** The backend API
+  usually answers in under a second, but tighter thresholds don't fail the run on a slow
+  response — they come back amber (`degraded`), which reads on stage like a real
+  regression and costs a retry cycle to tune away. Use `degradedResponseTime: 3000` /
+  `maxResponseTime: 8000` for single-item endpoints, and `5000` / `15000` for the full
+  catalog list (`/products`), which is the heaviest payload the backend serves. Browser
+  and Playwright checks need no override.
+- **Assert only on what the spec promises.** Status 200 plus the endpoint's
+  `x-monitoring.assertions` — don't invent body assertions for fields the spec doesn't
+  name.
+- **Read exactly one file: `openapi.yaml`.** No specs, no configs.
   If uncertain about a detail, emit reasonable code and let phase 3 catch mismatches.
 - Do not touch pre-baked files. Do not replace mocked alert channel URLs. Do not run
   `npm run destroy` without being asked.
@@ -167,11 +162,6 @@ training-data memory and burn minutes rediscovering breakages via `npm run test`
   `sample`, `example`, `blueprint`, `walkthrough`, `for this flow`, or similar framing in
   identifiers, tags, comments, or summary prose. Every file should be indistinguishable
   from what Astroshop's on-call team would actually check into a real repo.
-- **Operator-facing narration (`▸` / `✓` lines, wrap-up summary) hides demo plumbing.**
-  Never name `jsonmap.site`, `JSONMAP_API_KEY`, the seed step, the fixture file, or any
-  other internal mock-backend detail. Refer to it abstractly as "backend API", "runtime
-  secrets", "fixtures", "the storefront's data plane". Internal instructions in this skill
-  use the real names (Claude needs them to act); the narration to the operator does not.
 - Auth is via `npx checkly login`. If test/deploy errors on auth, stop and tell the user —
   don't set `CHECKLY_API_KEY`/`CHECKLY_ACCOUNT_ID` locally. The `.github/workflows/` files
   are the exception: CI runners have no cached login and do use those vars.

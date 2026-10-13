@@ -5,7 +5,7 @@
       "source": "checkly/checkly-cli",
       "sourceType": "github",
       "skillPath": "skills/checkly/SKILL.md",
-      "computedHash": "64bf173a90150afe6ae190200f03bdbd7fa77c861482dc92a3baf13a7b3aa12a"
+      "computedHash": "626415d2c7fad066ade22a95d7ea39188fb9cf2ad0652d4c57c2298eb2aeb466"
     }
   }
 }
