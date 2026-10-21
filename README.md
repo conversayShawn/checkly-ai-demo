@@ -9,6 +9,24 @@ architecture. Optimize for: *looks real, lands fast, recovers cleanly*.
 
 ---
 
+## Quick start
+
+```bash
+git clone https://github.com/conversayShawn/checkly-ai-demo.git
+cd checkly-ai-demo
+npm install                              # Checkly CLI 9.5+, Playwright 1.54.1
+npx checkly login                        # pick the shared SE demo account
+npx skills add checkly/checkly-cli -y    # Checkly Agent Skills for Claude Code
+cp .env.example .env                     # optional: set DEMO_SEED=<your-initials>
+claude                                   # then type prompt 1 below
+```
+
+No API keys, seed data, or backend env vars — the storefront API is public. Project
+settings (`.claude/settings.json`) already pin thinking effort to **medium** and
+`acceptEdits` mode with the Checkly/npm commands pre-allowed.
+
+---
+
 ## The two demo prompts
 
 These are the spine of the demo. Type them verbatim in `claude` from the repo root.
@@ -78,12 +96,12 @@ top-level `url`/`host` instead of nested `request: {}`) that fails the deploy. T
 installs this in the background too as a safety net, but pre-installing skips a first-run
 delay.
 
-### 4. Tune Claude's thinking effort to **medium or low**
+### 4. Confirm Claude's thinking effort is **medium or low**
 
-Via `/config` in Claude Code, or `~/.claude/settings.json`. As of late April 2026, Opus
-4.7 with high thinking effort spends 1–3+ minutes deliberating before writing any
-`.check.ts` file — the single biggest source of dead air on stage. Medium/low cuts that
-to seconds with no measurable quality loss for this task.
+The repo's `.claude/settings.json` sets `"effortLevel": "medium"`; check that nothing in
+your user settings or `/config` overrides it upward. High effort spends 1–3+ minutes
+deliberating before writing any `.check.ts` file — the single biggest source of dead air
+on stage. Medium/low cuts that to seconds with no measurable quality loss for this task.
 
 ### 5. Pre-warm `node_modules` — `npm install`
 
@@ -136,7 +154,7 @@ Narrate to the customer in roughly this rhythm.
 | Status page / dashboard URL 404s | Used path-style; Checkly serves them as subdomains | Format is `https://<slug>.checkly-status-page.com`, never `…/<slug>` |
 | SRE group empty after deploy | Uptime checks missing `group: sreGroup` property | `npx checkly check list`; redeploy if needed |
 | RCA hangs for minutes | `rca run` paired with any `-o` flag silently disables `-w` | Skill enforces `npx checkly rca run -e <id> -w` (no `-o`); never sleep-poll |
-| 1–3 min "Newspapering…" block before any code appears | Opus 4.7 at high thinking effort | Drop to medium/low (checklist step 4) |
+| 1–3 min "Newspapering…" block before any code appears | High thinking effort overriding the repo's `medium` setting | Drop to medium/low (checklist step 4) |
 | `CheckGroup is deprecated` warnings or schema errors at deploy | Agent Skills not loaded; Claude used outdated training-data shapes | Pre-install via checklist step 3 |
 | Slack webhook / phone-number validator rejects a channel | Placeholder values too short or wrong format | Skill specifies valid placeholder shapes; don't override on stage |
 | Dashboard slug collision on shared account | Multiple presenters with the same default `DEMO_SEED` | Set `DEMO_SEED=<initials>` in `.env` |
@@ -186,11 +204,13 @@ wiring would look like, then leave the demo account silenced.
 ## Resetting between demos
 
 ```bash
-npm run destroy             # wipes deployed Checkly resources
-git checkout -- monitoring/ # restore the empty starting state (only specs/CSS remain)
+npm run reset                       # destroy Checkly resources, restore working tree to last commit, upgrade CLI
+npm run reset -- --no-upgrade       # same, but leave package.json / lockfile untouched
+npm run reset -- --keep-generated   # destroy resources only; keep generated files for diffing
 ```
 
-That's it. Re-running prompt 1 will re-generate everything from scratch.
+`reset` never touches ignored paths (`.env`, `node_modules`, `.checkly`). Re-running
+prompt 1 afterwards re-generates everything from scratch.
 
 ---
 
@@ -200,8 +220,14 @@ That's it. Re-running prompt 1 will re-generate everything from scratch.
 npm run test        # npx checkly test
 npm run deploy      # npx checkly deploy --force
 npm run destroy     # npx checkly destroy --force
+npm run reset       # destroy + restore working tree + upgrade CLI (see above)
 npm run typecheck   # tsc --noEmit (rarely needed; `npm run test` compiles too)
 ```
+
+CI reference (not part of the demo flow): `.github/workflows/checkly-action.yml` uses the
+official GitHub Action, `.github/workflows/checkly-cli.yml` runs plain `npx checkly` so it
+ports to any CI provider. Both authenticate with `CHECKLY_API_KEY` / `CHECKLY_ACCOUNT_ID`
+secrets instead of `checkly login`.
 
 ---
 
